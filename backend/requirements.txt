@@ -1,0 +1,15 @@
+Flask==3.0.3
+Flask-Login==0.6.3
+Flask-Cors==4.0.1
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.31
+Werkzeug==3.0.3
+scikit-learn==1.5.1
+torch==2.13.0
+shap==0.52.0
+numpy==2.4.4
+pandas==2.2.2
+vaderSentiment==3.3.2
+yfinance==0.2.40
+requests==2.32.3
+praw==7.7.1

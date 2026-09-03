@@ -1,0 +1,77 @@
+"""
+Module      : price_service.py
+Date        : 2026-08-29
+Author      : Dhruv
+Modification History:
+    2026-08-29 - Initial version. Added while wiring /api/signal and
+                 /api/backtest in app.py: portfolio_service.py only fetches
+                 a single live spot price (FR-2.3), but the Signal Engine
+                 (FR-3.1) and Backtesting Module (FR-4.1) both need a
+                 historical OHLCV series to build features/labels and to
+                 replay signals against. That gap was found by reading the
+                 code fresh from the repo, not assumed.
+Synopsis:
+    Fetches historical daily close+volume history for an asset, stock via
+    yfinance and crypto via Binance's public klines endpoint, returning a
+    pandas DataFrame shaped exactly as feature_pipeline.buildFeatureFrame
+    expects (columns ['close', 'volume'], DatetimeIndex).
+
+    Same dependency-injection pattern as portfolio_service.py's price
+    fetchers: real network clients live in _default*Fetcher functions,
+    callers can inject a fake fetcher for testing without live API access.
+
+Functions:
+    getHistoricalPrices(assetSymbol, assetType, lookbackDays,
+                         stockHistoryFetcher=None, cryptoHistoryFetcher=None)
+        -> pandas.DataFrame (columns: close, volume; DatetimeIndex)
+
+Globals accessed/modified: None.
+"""
+
+import pandas as pd
+
+LOOKBACK_DAYS_DEFAULT = 250  # enough history for SMA-20/RSI-14/MACD-26 warmup plus LSTM windows
+
+
+def getHistoricalPrices(assetSymbol, assetType, lookbackDays=LOOKBACK_DAYS_DEFAULT,
+                         stockHistoryFetcher=None, cryptoHistoryFetcher=None):
+    if assetType == "crypto":
+        fetcher = cryptoHistoryFetcher or _defaultCryptoHistoryFetcher
+    else:
+        fetcher = stockHistoryFetcher or _defaultStockHistoryFetcher
+    priceDf = fetcher(assetSymbol, lookbackDays)
+    # Guard against fetchers returning extra columns (e.g. yfinance's Open/High/Low/
+    # Adj Close/Dividends/Splits) — downstream code only expects close + volume.
+    return priceDf[["close", "volume"]].sort_index()
+
+
+# --- default fetchers (real network clients; not used in unit tests) ---
+
+def _defaultStockHistoryFetcher(assetSymbol, lookbackDays):
+    import yfinance as yf
+    ticker = yf.Ticker(assetSymbol)
+    history = ticker.history(period=f"{lookbackDays}d")
+    return pd.DataFrame({
+        "close": history["Close"],
+        "volume": history["Volume"],
+    })
+
+
+def _defaultCryptoHistoryFetcher(assetSymbol, lookbackDays):
+    import requests
+    response = requests.get(
+        "https://api.binance.com/api/v3/klines",
+        params={
+            "symbol": f"{assetSymbol.upper()}USDT",
+            "interval": "1d",
+            "limit": lookbackDays,
+        },
+        timeout=5,
+    )
+    response.raise_for_status()
+    klines = response.json()
+    # Binance kline row layout: [openTime, open, high, low, close, volume, ...]
+    closes = [float(row[4]) for row in klines]
+    volumes = [float(row[5]) for row in klines]
+    timestamps = pd.to_datetime([row[0] for row in klines], unit="ms")
+    return pd.DataFrame({"close": closes, "volume": volumes}, index=timestamps)

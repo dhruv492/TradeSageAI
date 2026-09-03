@@ -1,0 +1,160 @@
+Software Requirement Specification
+
+**TradeSage AI**
+
+*CE363: Project-III | CHARUSAT*
+
+# 1. Introduction
+
+## 1.1 Purpose
+
+This document specifies the functional and non-functional requirements for TradeSage AI, a personal trading intelligence platform combining portfolio tracking with an ML-driven signal engine for stocks and cryptocurrency.
+
+## 1.2 Scope
+
+TradeSage AI allows a user to track holdings, receive explainable direction-based trading signals (up/down/neutral), backtest those signals honestly, and monitor performance via a dashboard. It is explicitly a decision-support tool, not a financial advisory or trade-execution system.
+
+## 1.3 Intended Audience
+
+Internal project guide (CE363 evaluation), and the developer (for implementation reference).
+
+## 1.4 Definitions
+
+- **Signal: **A directional prediction (up/down/neutral) for an asset over a defined horizon (default: 3 days)
+
+- **Backtest: **Simulated historical evaluation of signal performance
+
+- **Sharpe ratio / drawdown / win-rate: **Risk-adjusted performance metrics, defined in Section 4 (Backtesting)
+
+# 2. Overall Description
+
+## 2.1 Actors
+
+- **Trader/User: **the primary actor; tracks portfolio, views signals, configures watchlist, reviews backtests
+
+- **Admin: **same physical person as Trader/User (solo project), but a distinct role accessed via a config panel: manages tracked assets, retrain schedule, data source health
+
+## 2.2 Assumptions & Constraints
+
+- No real-money execution; all trades are manually logged or CSV-imported
+
+- Free-tier data sources only (yfinance, Binance public API, NewsAPI, Reddit/PRAW) — subject to rate limits, which constrains refresh frequency
+
+- Single-user deployment is sufficient (multi-user auth is a nice-to-have, not required)
+
+## 2.3 Use Case Summary
+
+| **Use Case** | **Actor** | **Related FRs** |
+| --- | --- | --- |
+| Register / Log in | Trader/User | FR-1.1–1.3 |
+| Add/import holdings | Trader/User | FR-2.1, 2.2 |
+| View portfolio P&L | Trader/User | FR-2.3, 2.4 |
+| View trading signal | Trader/User | FR-3.1–3.5 |
+| Run/view backtest | Trader/User | FR-4.1–4.3 |
+| Manage watchlist | Trader/User | FR-5.1, 5.2 |
+| View dashboard | Trader/User | FR-6.1–6.3 |
+| Manage tracked assets | Admin | FR-7.1 |
+| Configure retrain schedule | Admin | FR-7.2 |
+| Monitor data source health | Admin | FR-7.3 |
+
+# 3. Functional Requirements
+
+## FR-1: Authentication
+
+**FR-1.1: **User can register with email/password
+
+**FR-1.2: **User can log in/out
+
+**FR-1.3: **Passwords stored hashed (never plaintext)
+
+## FR-2: Portfolio Tracker
+
+**FR-2.1: **User can manually add a holding (asset, quantity, buy price, date)
+
+**FR-2.2: **User can import holdings via CSV
+
+**FR-2.3: **System fetches live price for each held asset (stocks via yfinance, crypto via Binance public API)
+
+**FR-2.4: **System calculates and displays unrealized P&L per holding and portfolio-wide
+
+## FR-3: Signal Engine
+
+**FR-3.1: **System computes technical indicators (RSI, MACD, moving averages, volume) per tracked asset
+
+**FR-3.2: **System computes a sentiment score from news headlines (stocks) or Reddit posts (crypto)
+
+**FR-3.3: **System generates a direction prediction (up/down/neutral) over a 3-day horizon using two models: a baseline (Logistic Regression or Random Forest) and an LSTM/GRU, shown side by side
+
+**FR-3.4: **System displays a confidence score and top contributing features (via SHAP or feature importance) per signal
+
+**FR-3.5: **System never predicts an exact future price — direction only
+
+## FR-4: Backtesting Module
+
+**FR-4.1: **System simulates signal performance over historical data
+
+**FR-4.2: **System reports Sharpe ratio, win-rate, and maximum drawdown — never leads with raw accuracy
+
+**FR-4.3: **Backtest results are viewable per-asset and in aggregate
+
+## FR-5: Watchlist & Alerts (stretch goal)
+
+**FR-5.1: **User can add assets to a watchlist without holding them
+
+**FR-5.2: **System notifies user when a watchlisted asset's signal changes
+
+## FR-6: Dashboard
+
+**FR-6.1: **Displays portfolio overview (holdings, P&L, allocation)
+
+**FR-6.2: **Displays signal history vs. actual outcome per asset (feedback loop)
+
+**FR-6.3: **Displays stock vs. crypto comparison view
+
+## FR-7: Admin/Config Panel (stretch goal)
+
+**FR-7.1: **Manage list of tracked assets
+
+**FR-7.2: **Configure model retrain schedule
+
+**FR-7.3: **Monitor data source health (API failures, stale data)
+
+# 4. External Interface Requirements
+
+- **User Interface: **Web-based, browser-accessed (HTML/CSS/JS), responsive enough for laptop use (mobile not a target for this scope)
+
+- **Software Interfaces: **yfinance (stock price data), Binance public API (crypto price data), NewsAPI (stock sentiment source), Reddit API via PRAW (crypto sentiment source)
+
+- **Communication Interfaces: **HTTPS for all client-server communication; scheduled backend jobs (cron/Celery) poll external APIs — no real-time push/websocket requirement for this scope
+
+- **Hardware Interfaces: **None (no embedded/IoT dependency)
+
+# 5. Data Requirements (Key Entities)
+
+- **User: **credentials, profile
+
+- **Holding: **asset symbol, quantity, buy price, buy date, asset type (stock/crypto)
+
+- **Signal: **asset, timestamp, predicted direction, confidence score, contributing features, model used (baseline/LSTM)
+
+- **BacktestResult: **asset, date range, Sharpe ratio, win-rate, max drawdown
+
+- **WatchlistItem: **asset symbol, date added (stretch goal)
+
+# 6. Non-Functional Requirements
+
+- **NFR-1 (Performance): **Dashboard should load portfolio + latest signals within 3 seconds under normal conditions
+
+- **NFR-2 (Reliability): **System should gracefully handle data source API failures (show stale-data warning, not crash)
+
+- **NFR-3 (Usability): **Signals must display confidence + contributing factors — no unexplained black-box output
+
+- **NFR-4 (Security): **Passwords hashed; no plaintext credentials stored
+
+- **NFR-5 (Maintainability): **Code follows CHARUSAT Coding Standard v1.0 (naming conventions, module headers) throughout
+
+- **NFR-6 (Honesty/Ethical): **UI must display a persistent disclaimer that signals are decision-support, not financial advice; backtested metrics must never be presented as guarantees of future performance
+
+# 7. Limitations
+
+Market noise, non-stationarity of financial time series, survivorship bias in backtesting, and no guarantee of future performance are acknowledged constraints — not treated as solvable, but as honestly reported boundaries of the system.

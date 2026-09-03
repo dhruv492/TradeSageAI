@@ -1,0 +1,93 @@
+import numpy as np
+import pandas as pd
+from datetime import date, timedelta
+from flask import Flask
+from models import db, User, Holding
+import auth_service, portfolio_service, sentiment_service
+from feature_pipeline import buildFeatureFrame, labelDirection
+from signal_engine import trainRandomForestBaseline
+from lstm_model import buildSequenceWindows, trainLstm, WINDOW_SIZE_DEFAULT
+from signal_service import generateSignal
+from models import MODEL_BASELINE, MODEL_LSTM
+
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+
+    # --- auth ---
+    user = auth_service.registerUser(db.session, "trader@example.com", "hunter2pass")
+    assert auth_service.verifyLogin(db.session, "trader@example.com", "hunter2pass") is not None
+    assert auth_service.verifyLogin(db.session, "trader@example.com", "wrong") is None
+    print("auth OK, userId =", user.userId)
+
+    # --- portfolio: manual add + CSV import (with a deliberately bad row) ---
+    portfolio_service.addHolding(db.session, user.userId, "aapl", "stock", 10, 150.0, date(2025, 1, 5))
+    csvContent = b"assetSymbol,assetType,quantity,buyPrice,buyDate\nBTC,crypto,0.1,40000,2025-02-01\nBAD,stock,notanumber,100,2025-01-01\n"
+    import io
+    importResult = portfolio_service.importHoldingsFromCsv(db.session, user.userId, io.BytesIO(csvContent))
+    print("CSV import:", importResult)
+    assert importResult["imported"] == 1
+    assert len(importResult["errors"]) == 1
+
+    def fakeStockPrice(symbol): return 160.0
+    def fakeCryptoPrice(symbol): return 42000.0
+    pnl = portfolio_service.getPortfolioPnl(db.session, user.userId, fakeStockPrice, fakeCryptoPrice)
+    print("Portfolio P&L:", pnl["totalPnl"])
+    assert isinstance(pnl["totalPnl"], float)
+
+    # --- sentiment (mocked fetchers, no live network) ---
+    def fakeHeadlines(symbol, d): return ["Stock rallies on bullish outlook", "Analysts upgrade rating"]
+    score = sentiment_service.getSentimentForAsset("AAPL", "stock", date(2025, 1, 5), db.session, headlineFetcher=fakeHeadlines)
+    print("Sentiment score (finance lexicon applied):", score)
+    assert score > 0  # "rallies", "bullish", "upgrade" should push this positive
+    # cache hit path
+    score2 = sentiment_service.getSentimentForAsset("AAPL", "stock", date(2025, 1, 5), db.session, headlineFetcher=fakeHeadlines)
+    assert score == score2
+
+    # --- feature pipeline + labels on synthetic price history ---
+    np.random.seed(1)
+    dates = pd.bdate_range("2025-01-01", periods=250)
+    closes = 100 * np.cumprod(1 + np.random.normal(0.0003, 0.012, len(dates)))
+    volumes = np.random.randint(1_000_000, 5_000_000, len(dates))
+    priceDf = pd.DataFrame({"close": closes, "volume": volumes}, index=dates)
+
+    featureFrame = buildFeatureFrame(priceDf)
+    labels = labelDirection(priceDf["close"])
+    print("Feature frame shape:", featureFrame.shape)
+    assert set(featureFrame.columns) == {"rsi", "macd", "sma", "volumeChange"}
+
+    # --- train both models (both trained on technical + sentiment features, per FR-3.2) ---
+    ffWithSentiment = featureFrame.copy()
+    ffWithSentiment["sentiment"] = 0.1
+    rfModel = trainRandomForestBaseline(ffWithSentiment, labels)
+    print("RF trained, classes:", rfModel.classes_)
+
+    sequences, seqLabels = buildSequenceWindows(ffWithSentiment, labels, WINDOW_SIZE_DEFAULT)
+    print("LSTM sequences:", sequences.shape, "labels:", seqLabels.shape)
+    lstmModel = trainLstm(sequences, seqLabels, classNames=["down", "neutral", "up"], epochs=3)
+    print("LSTM trained OK")
+
+    # --- full orchestrated signal generation (RF + LSTM + SHAP, persisted) ---
+    rfBackground = ffWithSentiment.tail(80).values[:60]
+    lstmBackground = sequences[-30:]
+    rows = generateSignal(
+        db.session, user.userId, "AAPL", "stock", priceDf,
+        sentimentScore=0.1,
+        rfModel=rfModel, rfBackground=rfBackground,
+        lstmModel=lstmModel, lstmBackground=lstmBackground,
+        featureNames=list(featureFrame.columns),
+    )
+    print(f"Signals persisted: {len(rows)}")
+    assert len(rows) == 2
+    modelsUsed = {r.modelUsed for r in rows}
+    assert modelsUsed == {MODEL_BASELINE, MODEL_LSTM}
+    for r in rows:
+        import json
+        explanation = json.loads(r.topContributingFeatures)
+        print(f"  {r.modelUsed}: direction={r.predictedDirection} conf={r.confidenceScore:.3f} top={explanation[:2]}")
+        assert len(explanation) > 0
+
+print("\nFULL PIPELINE SMOKE TEST PASSED")
