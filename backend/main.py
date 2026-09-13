@@ -80,10 +80,28 @@ G_ModelCache: Dict[Any, Any] = {}
 G_Serializer = URLSafeTimedSerializer(SECRET_KEY, salt="tradesage-auth-session")
 
 
+def seedDemoUser():
+    """Ensures a default demo user exists for immediate out-of-the-box terminal evaluation."""
+    from werkzeug.security import generate_password_hash
+    db = SessionLocal()
+    try:
+        demo = db.query(User).filter_by(email="trader@tradesage.ai").first()
+        if not demo:
+            demoUser = User(
+                email="trader@tradesage.ai",
+                passwordHash=generate_password_hash("Password123!")
+            )
+            db.add(demoUser)
+            db.commit()
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(appInstance: FastAPI):
-    """Initializes database tables on startup."""
+    """Initializes database tables on startup and seeds default demo credentials."""
     initDb()
+    seedDemoUser()
     yield
 
 

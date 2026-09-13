@@ -54,42 +54,118 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
 
   <!-- AUTHENTICATION GATEWAY (SHOWN BEFORE LOGIN) -->
   <div id="authGateway" class="auth-gateway-overlay">
+    <div class="auth-gateway-ambient-glow"></div>
+    
+    <!-- Real-Time Institutional Market Ribbon -->
+    <div class="auth-ticker-strip">
+      <div class="auth-ticker-item"><span class="ticker-sym">BTC-USD</span> <span class="ticker-val">$68,450.00</span> <span class="val-pos">▲ +3.42%</span></div>
+      <div class="auth-ticker-item"><span class="ticker-sym">NVDA</span> <span class="ticker-val">$128.85</span> <span class="val-pos">▲ +2.78%</span></div>
+      <div class="auth-ticker-item"><span class="ticker-sym">AAPL</span> <span class="ticker-val">$231.20</span> <span class="val-pos">▲ +1.15%</span></div>
+      <div class="auth-ticker-item"><span class="ticker-sym">ETH-USD</span> <span class="ticker-val">$3,518.40</span> <span class="val-pos">▲ +2.04%</span></div>
+      <div class="auth-ticker-item"><span class="ticker-sym">MSFT</span> <span class="ticker-val">$448.10</span> <span class="val-neg">▼ -0.38%</span></div>
+      <div class="auth-ticker-item"><span class="ticker-sym">SPY</span> <span class="ticker-val">$564.30</span> <span class="val-pos">▲ +0.64%</span></div>
+    </div>
+
     <div class="auth-gateway-card">
       <div class="auth-gateway-header">
-        <span class="auth-gateway-badge">
-          <span class="status-led" style="background: var(--fin-neutral);"></span>
-          Terminal Locked
-        </span>
-        <h2 class="auth-gateway-title" id="lbl-gatewayTitle">Trader Authentication</h2>
+        <div class="auth-brand-badge">
+          <div class="auth-brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/>
+            </svg>
+          </div>
+          <span class="auth-status-chip">
+            <span class="status-led led-pulse"></span>
+            Terminal v2.2 Ready
+          </span>
+        </div>
+        <h2 class="auth-gateway-title" id="lbl-gatewayTitle">TradeSage Intelligence Terminal</h2>
         <p class="auth-gateway-desc" id="lbl-gatewayDesc">
-          Sign in to access your portfolio positions, real-time ML trading signals, and quantitative backtesting engines.
+          Institutional algorithmic trading platform with dual ML signal engines, FinBERT sentiment scoring, and quantitative backtesting.
         </p>
       </div>
 
+      <!-- Quick 1-Click Demo Evaluation Box -->
+      <div class="auth-demo-card">
+        <div class="auth-demo-card-header">
+          <div class="auth-demo-tag">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span>Pre-Configured Demo Access</span>
+          </div>
+          <span class="auth-demo-badge">Instant Evaluation</span>
+        </div>
+        <div class="auth-demo-creds">
+          <div class="demo-cred-row">
+            <span class="demo-cred-label">Login:</span>
+            <span class="demo-cred-value mono" id="lbl-demoEmail">trader@tradesage.ai</span>
+          </div>
+          <div class="demo-cred-row">
+            <span class="demo-cred-label">Password:</span>
+            <span class="demo-cred-value mono" id="lbl-demoPass">Password123!</span>
+          </div>
+        </div>
+        <button id="btn-quickDemo" class="btn btn-demo-instant" onclick="Auth.quickDemoLogin()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>1-Click Demo Sign In</span>
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span>OR ENTER CREDENTIALS MANUALLY</span>
+      </div>
+
+      <!-- Segmented Mode Switch -->
       <div class="auth-gateway-tabs">
-        <button id="btn-gateTabLogin" class="auth-gateway-tab-btn active" onclick="Auth.setGatewayMode('login')">Sign In</button>
-        <button id="btn-gateTabRegister" class="auth-gateway-tab-btn" onclick="Auth.setGatewayMode('register')">Create Account</button>
+        <button id="btn-gateTabLogin" class="auth-gateway-tab-btn active" onclick="Auth.setGatewayMode('login')">
+          Sign In
+        </button>
+        <button id="btn-gateTabRegister" class="auth-gateway-tab-btn" onclick="Auth.setGatewayMode('register')">
+          Create Account
+        </button>
       </div>
 
-      <div class="field-group">
-        <label>Email Address</label>
-        <input type="email" id="txt-gateEmail" placeholder="trader@tradesage.ai" required>
+      <!-- Input Fields -->
+      <div class="auth-fields-wrap">
+        <div class="field-group">
+          <label for="txt-gateEmail">Email Address</label>
+          <div class="input-icon-wrap">
+            <svg class="input-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="txt-gateEmail" placeholder="trader@tradesage.ai" onkeydown="if(event.key==='Enter') Auth.submitGateway()" required>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="txt-gatePassword">Password</label>
+          <div class="input-icon-wrap">
+            <svg class="input-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="txt-gatePassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') Auth.submitGateway()" required>
+          </div>
+        </div>
       </div>
 
-      <div class="field-group">
-        <label>Password</label>
-        <input type="password" id="txt-gatePassword" placeholder="••••••••" required>
-      </div>
-
-      <button id="btn-gateSubmit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 700;" onclick="Auth.submitGateway()">
-        Access Terminal
+      <button id="btn-gateSubmit" class="btn btn-primary btn-gate-submit" onclick="Auth.submitGateway()">
+        <span>Access Trading Terminal</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
       </button>
 
       <div class="auth-gateway-features">
-        <span class="auth-gateway-feat-pill">Dual-Model AI (RF + LSTM)</span>
-        <span class="auth-gateway-feat-pill">SHAP Explainability</span>
-        <span class="auth-gateway-feat-pill">FinBERT Sentiment</span>
-        <span class="auth-gateway-feat-pill">ACID SQL Ledger</span>
+        <span class="auth-gateway-feat-pill">
+          <span class="feat-dot"></span> Dual-Model AI (RF + LSTM)
+        </span>
+        <span class="auth-gateway-feat-pill">
+          <span class="feat-dot"></span> SHAP Explainability
+        </span>
+        <span class="auth-gateway-feat-pill">
+          <span class="feat-dot"></span> FinBERT Sentiment
+        </span>
+        <span class="auth-gateway-feat-pill">
+          <span class="feat-dot"></span> SQLAlchemy ORM Ledger
+        </span>
+      </div>
+
+      <div class="auth-security-note">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Secure Signed Sessions • ACID Relational Persistence</span>
       </div>
     </div>
   </div>

@@ -131,9 +131,18 @@ function closeModal(id) {
   if (el) el.classList.remove("active");
 }
 
-/* --- AUTHENTICATION MODULE (FR-1) --- */
 const Auth = {
   gatewayMode: "login",
+
+  async quickDemoLogin() {
+    const emailInput = document.getElementById("txt-gateEmail");
+    const passInput = document.getElementById("txt-gatePassword");
+    if (emailInput) emailInput.value = "trader@tradesage.ai";
+    if (passInput) passInput.value = "Password123!";
+    this.setGatewayMode("login");
+    Toast.show("Authorizing demo terminal session...", "info", 1500);
+    await this.submitGateway();
+  },
 
   setGatewayMode(mode) {
     this.gatewayMode = mode;
@@ -146,15 +155,15 @@ const Auth = {
     if (mode === "login") {
       tabLogin.classList.add("active");
       tabRegister.classList.remove("active");
-      submitBtn.textContent = "Access Terminal";
-      title.textContent = "Trader Authentication";
-      desc.textContent = "Sign in to access your portfolio positions, real-time ML trading signals, and quantitative backtesting engines.";
+      submitBtn.innerHTML = `<span>Access Trading Terminal</span> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>`;
+      title.textContent = "TradeSage Intelligence Terminal";
+      desc.textContent = "Institutional algorithmic trading platform with dual ML signal engines, FinBERT sentiment scoring, and quantitative backtesting.";
     } else {
       tabRegister.classList.add("active");
       tabLogin.classList.remove("active");
-      submitBtn.textContent = "Register & Launch Terminal";
-      title.textContent = "Register Trader Account";
-      desc.textContent = "Create an account to start tracking stock & crypto positions, executing ML signals, and storing backtests.";
+      submitBtn.innerHTML = `<span>Register & Launch Terminal</span> <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>`;
+      title.textContent = "Register Institutional Account";
+      desc.textContent = "Create an account to start tracking stock & crypto positions, executing ML signals, and storing backtest portfolios.";
     }
   },
 
@@ -178,7 +187,7 @@ const Auth = {
     }
 
     if (this.gatewayMode === "register") {
-      Toast.show("Account registered! Signing in...", "success");
+      Toast.show("Account registered! Connecting...", "success");
       const loginRes = await Api.fetch("/api/login", {
         method: "POST",
         body: JSON.stringify({ email, password })
@@ -270,7 +279,7 @@ const Auth = {
     await Api.fetch("/api/logout", { method: "POST" });
     State.userEmail = null;
     document.getElementById("userPill").textContent = "Not Logged In";
-    document.getElementById("btn-openAuth").style.display = "inline-flex";
+    document.getElementById("btn-openAuth").style.display = "none";
     document.getElementById("btn-logout").style.display = "none";
 
     // Lock Workspace & Show Gateway Screen
@@ -279,7 +288,7 @@ const Auth = {
     if (gateway) gateway.style.display = "flex";
     if (workspace) workspace.style.display = "none";
 
-    Toast.show("Disconnected session.", "info");
+    Toast.show("Terminal session locked.", "info");
     Portfolio.reset();
   }
 };
@@ -918,6 +927,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (workspace) workspace.style.display = "block";
       loadAllTerminalData();
     } else {
+      document.getElementById("btn-openAuth").style.display = "none";
       if (gateway) gateway.style.display = "flex";
       if (workspace) workspace.style.display = "none";
       Portfolio.reset();
