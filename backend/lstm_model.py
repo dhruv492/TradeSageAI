@@ -31,8 +31,15 @@ Globals accessed/modified: None.
 """
 
 import numpy as np
-import torch
-import torch.nn as nn
+
+try:
+    import torch
+    import torch.nn as nn
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    TORCH_AVAILABLE = False
 
 WINDOW_SIZE_DEFAULT = 20   # ALL_CAPS constants per CHARUSAT standard
 HIDDEN_SIZE_DEFAULT = 32
@@ -40,9 +47,11 @@ EPOCHS_DEFAULT = 15
 LEARNING_RATE_DEFAULT = 0.001
 
 
-class ShallowLstm(nn.Module):
+class ShallowLstm(nn.Module if nn else object):
     def __init__(self, inputSize, hiddenSize=HIDDEN_SIZE_DEFAULT, numClasses=3):
         super().__init__()
+        if not TORCH_AVAILABLE:
+            return
         self.lstm = nn.LSTM(inputSize, hiddenSize, num_layers=1, batch_first=True)
         self.fc = nn.Linear(hiddenSize, numClasses)
 
@@ -76,6 +85,8 @@ def pd_isna(value):
 
 def trainLstm(sequences, labels, classNames, epochs=EPOCHS_DEFAULT,
               hiddenSize=HIDDEN_SIZE_DEFAULT):
+    if not TORCH_AVAILABLE:
+        return None
     classToIndex = {name: i for i, name in enumerate(classNames)}
     labelIndices = np.array([classToIndex[label] for label in labels])
 
@@ -100,6 +111,8 @@ def trainLstm(sequences, labels, classNames, epochs=EPOCHS_DEFAULT,
 
 
 def predictDirection(model, sequence, classNames):
+    if not TORCH_AVAILABLE or model is None:
+        return {"direction": "neutral", "confidence": 0.5, "classIndex": 1}
     model.eval()
     sequenceTensor = torch.tensor(
         sequence.reshape(1, *sequence.shape), dtype=torch.float32

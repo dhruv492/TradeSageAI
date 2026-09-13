@@ -54,8 +54,20 @@ Globals accessed/modified: None (stateless service; no G- globals).
 """
 
 import numpy as np
-import shap
-import torch
+
+try:
+    import shap
+    SHAP_AVAILABLE = True
+except ImportError:
+    shap = None
+    SHAP_AVAILABLE = False
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
 
 from models import MODEL_BASELINE, MODEL_LSTM
 
@@ -64,6 +76,11 @@ DEFAULT_TOP_N = 5  # ALL_CAPS constant per CHARUSAT standard
 
 def explainRandomForest(model, backgroundData, instanceRow, featureNames,
                          predictedClassIndex, topN=DEFAULT_TOP_N):
+    if not SHAP_AVAILABLE or shap is None:
+        if hasattr(model, "feature_importances_"):
+            return _rankTopFeatures(model.feature_importances_, featureNames, topN)
+        return [{"feature": f, "contribution": 0.0} for f in featureNames[:topN]]
+
     treeExplainer = shap.TreeExplainer(model, backgroundData)
     rawShapValues = treeExplainer.shap_values(instanceRow.reshape(1, -1))
 
@@ -86,6 +103,8 @@ def explainRandomForest(model, backgroundData, instanceRow, featureNames,
 
 def explainLstm(model, backgroundSequences, instanceSequence, featureNames,
                  predictedClassIndex, topN=DEFAULT_TOP_N):
+    if not SHAP_AVAILABLE or not TORCH_AVAILABLE or shap is None or torch is None or model is None:
+        return [{"feature": f, "contribution": 0.0} for f in featureNames[:topN]]
     model.eval()
     backgroundTensor = torch.tensor(backgroundSequences, dtype=torch.float32)
     instanceTensor = torch.tensor(

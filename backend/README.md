@@ -28,18 +28,22 @@ advice.
 - `tests/smoke_test_phase3.py` — route-level test for Watchlist, Admin panel, feedback loop, and comparison view (FR-5, FR-6.2, FR-6.3, FR-7)
 - `tests/conftest.py` — puts `backend/` on `sys.path` so the smoke tests' bare `import app` / `import price_service` still resolve now that tests live in a subfolder
 
-## Setup
+## Setup & Execution
 
 ```bash
 pip install -r requirements.txt
-python app.py   # run from inside backend/
+
+# Run the modern FastAPI server (with interactive Swagger UI):
+python main.py   # or: uvicorn main:app --port 5000 --reload
+
+# Alternatively, run the legacy Flask backend:
+python app.py
 ```
 
-Serves the API on `http://localhost:5000`. Open `../frontend/dashboard.html`
-directly in a browser (or via a simple dev server on port 5500 — see
-`ALLOWED_DASHBOARD_ORIGIN_DEFAULT` in `app.py` if you change the port).
-Register an account first, then log in — the dashboard has no data to show
-until you do, and the Signal/Backtest sections need an active session.
+### Accessing the System:
+* **Interactive Swagger UI**: [`http://localhost:5000/docs`](http://localhost:5000/docs)
+* **ReDoc Documentation**: [`http://localhost:5000/redoc`](http://localhost:5000/redoc)
+* **Trading Terminal Dashboard**: [`http://localhost:5000/static/dashboard.html`](http://localhost:5000/static/dashboard.html) (or simply [`http://localhost:5000/`](http://localhost:5000/))
 
 Note: `/api/signal` trains both models on first request for an asset
 (~15-20s cold start, documented cost — this is an explicit user action, not

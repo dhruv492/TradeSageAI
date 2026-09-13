@@ -1,548 +1,494 @@
 <!--
 Module      : dashboard.html
-Date        : 2026-08-29
+Date        : 2026-09-03
 Author      : Dhruv
 Modification History:
-    2026-08-07 - Initial version: portfolio table only (FR-6.1).
-    2026-08-29 - Added Signal Engine display (FR-3.3, FR-3.4) and Backtest
-                 display (FR-4.1-4.3) now that /api/signal and /api/backtest
-                 are actually wired in app.py. Design decision: numeric data
-                 (prices, confidence, metrics) uses a monospace face to read
-                 like ticker data, separate from the sans-serif UI labels.
-                 Equity curve is drawn on a plain <canvas> rather than
-                 pulling in Chart.js, to keep the locked "no framework, no
-                 external dependency" frontend decision intact end to end.
-Synopsis    : Portfolio + Signal + Backtest dashboard. Plain HTML/CSS/JS.
-              fetch() calls use credentials:'include' to match app.py's
-              CORS(supports_credentials=True) setup (real bug caught during
-              earlier smoke testing — omitting this on either side drops
-              the session cookie silently).
+    2026-08-07 - Initial version: basic portfolio table (FR-6.1).
+    2026-08-29 - Added Signal Engine (FR-3.3/3.4) and Backtest display (FR-4.1-4.3).
+    2026-08-30 - Added Phase 3: Watchlist, Feedback loop, Stock vs Crypto, Admin.
+    2026-09-03 - Modularized release: Clean semantic markup linked to css/style.css
+                 and js/app.js. Institutional trading terminal aesthetic,
+                 CHARUSAT v1.0 standards, model divergence indicators, and theme switcher.
+Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TradeSage AI — Dashboard</title>
-<style>
-  :root {
-    --ink: #1b1f23;
-    --muted: #6b7280;
-    --paper: #f7f7f5;
-    --panel: #ffffff;
-    --border: #e3e1dc;
-    --up: #1a7f37;
-    --down: #cf222e;
-    --neutral: #8a6d00;
-    --accent: #2f5d8a;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: system-ui, sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    max-width: 920px;
-    margin: 32px auto;
-    padding: 0 16px;
-  }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 32px 0 10px; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px 18px; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
-  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .pnl-positive { color: var(--up); }
-  .pnl-negative { color: var(--down); }
-
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-  input, select, button {
-    font-family: inherit; font-size: 14px; padding: 7px 10px;
-    border: 1px solid var(--border); border-radius: 4px; background: var(--panel);
-  }
-  button { background: var(--ink); color: #fff; border-color: var(--ink); cursor: pointer; }
-  button:hover { opacity: 0.85; }
-  button:disabled { opacity: 0.5; cursor: default; }
-
-  .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 640px) { .signal-grid { grid-template-columns: 1fr; } }
-  .signal-card { border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
-  .signal-model { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .direction { font-size: 22px; font-weight: 600; margin: 4px 0; }
-  .direction.up { color: var(--up); } .direction.down { color: var(--down); } .direction.neutral { color: var(--neutral); }
-  .confidence-track { background: #edece7; border-radius: 3px; height: 6px; overflow: hidden; margin: 6px 0 10px; }
-  .confidence-fill { background: var(--accent); height: 100%; }
-  .feature-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-  .feature-list li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--border); }
-
-  .metric-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-  .metric { flex: 1; min-width: 120px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-  .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .metric-value { font-size: 20px; margin-top: 2px; }
-
-  canvas { width: 100%; height: 160px; display: block; }
-
-  .status { font-size: 13px; color: var(--muted); }
-  .disclaimer { font-size: 12px; color: var(--muted); margin-top: 32px; border-top: 1px solid var(--border); padding-top: 10px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeSage AI — Trading Intelligence Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h1>TradeSage AI</h1>
-  <div class="status" id="loginStatus"></div>
 
-  <div class="panel" id="authPanel">
-    <div class="row">
-      <input id="authEmail" type="email" placeholder="Email">
-      <input id="authPassword" type="password" placeholder="Password">
-      <button onclick="login()">Log in</button>
-      <button onclick="register()">Register</button>
-      <button id="logoutBtn" onclick="logout()" style="display:none">Log out</button>
-      <span class="status" id="authStatus"></span>
+  <!-- TERMINAL TOP DECK -->
+  <header class="terminal-deck">
+    <div class="desk-identity">
+      <div class="desk-logo">
+        <div class="desk-logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>
+        </div>
+        <span>TradeSage AI</span>
+      </div>
+      <span class="desk-badge">TERMINAL v2.2</span>
+    </div>
+
+    <div class="desk-status-bar">
+      <div class="status-pill">
+        <span class="status-led"></span>
+        <span>Signal Engine Connected</span>
+      </div>
+      <div class="session-controls">
+        <button id="btn-themeToggle" class="theme-toggle-btn" onclick="Theme.toggle()" title="Toggle Theme">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <span class="status-pill" id="userPill">Not Logged In</span>
+        <button id="btn-openAuth" class="btn btn-subtle btn-xs" onclick="Auth.openModal()">Sign In / Register</button>
+        <button id="btn-logout" class="btn btn-subtle btn-xs" onclick="Auth.logout()" style="display: none;">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE WRAPPER -->
+  <main class="workspace-wrapper">
+
+    <!-- NAVIGATION TABS -->
+    <nav class="terminal-tabs">
+      <button class="term-tab active" data-tab="overview" onclick="switchTab('overview')">
+        <span>Overview</span>
+      </button>
+      <button class="term-tab" data-tab="portfolio" onclick="switchTab('portfolio')">
+        <span>Position Book</span>
+        <span class="tab-count" id="tabCountHoldings">0</span>
+      </button>
+      <button class="term-tab" data-tab="signal" onclick="switchTab('signal')">
+        <span>Signal Matrix</span>
+      </button>
+      <button class="term-tab" data-tab="backtest" onclick="switchTab('backtest')">
+        <span>Strategy Backtest</span>
+      </button>
+      <button class="term-tab" data-tab="watchlist" onclick="switchTab('watchlist')">
+        <span>Asset Monitor</span>
+        <span class="tab-count" id="tabCountWatchlist">0</span>
+      </button>
+      <button class="term-tab" data-tab="history" onclick="switchTab('history')">
+        <span>Feedback Audit</span>
+      </button>
+      <button class="term-tab" data-tab="admin" onclick="switchTab('admin')">
+        <span>Terminal Settings</span>
+      </button>
+    </nav>
+
+    <!-- WORKSPACE 1: OVERVIEW -->
+    <section id="tab-overview" class="tab-workspace active">
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <span class="metric-name">Portfolio Unrealized P&amp;L</span>
+          <span class="metric-data mono" id="stat-totalPnl">—</span>
+          <span class="metric-meta">Aggregated open position valuation</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-name">Equity Positions</span>
+          <span class="metric-data mono" id="stat-stockPnl">—</span>
+          <span class="metric-meta" id="stat-stockCount">0 active holdings</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-name">Crypto Positions</span>
+          <span class="metric-data mono" id="stat-cryptoPnl">—</span>
+          <span class="metric-meta" id="stat-cryptoCount">0 active holdings</span>
+        </div>
+        <div class="metric-cell">
+          <span class="metric-name">Signal Alerts</span>
+          <span class="metric-data mono" id="stat-alertsCount">0</span>
+          <span class="metric-meta">Directional shifts flagged</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Model Architecture &amp; Methodology</h2>
+            <p class="panel-desc">Dual-model direction prediction with SHAP explainability and zero black-box risk</p>
+          </div>
+          <button class="btn btn-primary btn-xs" onclick="switchTab('signal')">Launch Signal Matrix →</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); max-width: 860px;">
+          TradeSage AI combines technical indicators (RSI, MACD, Volume Delta, SMA) with NLP sentiment scoring. Predictions are rendered via two parallel architectures: a <strong>Random Forest Classifier</strong> (tabular baseline) and a <strong>Shallow PyTorch LSTM</strong> (temporal sequence learner). When both models diverge on directional bias, an explicit risk warning is highlighted.
+        </p>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 2: PORTFOLIO TRACKER -->
+    <section id="tab-portfolio" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Recorded Positions</h2>
+            <p class="panel-desc">Mark-to-market valuations for equities and cryptocurrencies</p>
+          </div>
+          <div class="control-row">
+            <button id="btn-addHolding" class="btn btn-primary btn-xs" onclick="Portfolio.openAddModal()">+ Add Position</button>
+            <button id="btn-importCsv" class="btn btn-subtle btn-xs" onclick="Portfolio.openCsvModal()">Import CSV</button>
+            <button id="btn-refreshHoldings" class="btn btn-subtle btn-xs" onclick="Portfolio.load()">↻ Refresh</button>
+          </div>
+        </div>
+
+        <div class="data-grid-wrap">
+          <table id="tbl-holdings">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Asset Class</th>
+                <th>Units</th>
+                <th>Live Price</th>
+                <th>Unrealized P&amp;L</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-holdings-body">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                  Log in to inspect your portfolio positions.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 3: SIGNAL MATRIX -->
+    <section id="tab-signal" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Dual-Model Directional Signal Matrix</h2>
+            <p class="panel-desc">Random Forest Baseline vs. Shallow LSTM with SHAP Factor Decomposition</p>
+          </div>
+          <div class="control-row">
+            <input type="text" id="txt-signalSymbol" placeholder="Symbol (e.g. AAPL)" value="AAPL" style="width: 140px; text-transform: uppercase;">
+            <select id="cmb-signalType">
+              <option value="stock">Equity / Stock</option>
+              <option value="crypto">Cryptocurrency</option>
+            </select>
+            <button id="btn-genSignals" class="btn btn-primary" onclick="Signals.generate()">Compute Signals</button>
+          </div>
+        </div>
+
+        <!-- Signature Element: Divergence Warning -->
+        <div id="divergenceAlert" class="divergence-alert">
+          <strong>⚠️ Model Divergence Detected:</strong>
+          <span id="divergenceMsg"></span>
+        </div>
+
+        <!-- Model Comparison Matrix -->
+        <div class="models-matrix" id="modelsMatrix">
+          <div class="matrix-cell" style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 32px;">
+            Input a symbol above and click "Compute Signals" to run the dual-model inference pipeline.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 4: STRATEGY BACKTEST -->
+    <section id="tab-backtest" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Quantitative Backtester</h2>
+            <p class="panel-desc">Evaluates historical signals using the Honesty Framework (Sharpe, Drawdown, Win Rate)</p>
+          </div>
+          <div class="control-row">
+            <input type="text" id="txt-backtestSymbol" placeholder="Symbol" value="AAPL" style="width: 130px; text-transform: uppercase;">
+            <select id="cmb-backtestType">
+              <option value="stock">Equity</option>
+              <option value="crypto">Crypto</option>
+            </select>
+            <select id="cmb-backtestModel">
+              <option value="random_forest">Random Forest</option>
+              <option value="lstm">LSTM Neural Net</option>
+            </select>
+            <button id="btn-runBacktest" class="btn btn-primary" onclick="Backtest.run()">Run Backtest</button>
+          </div>
+        </div>
+
+        <div class="metrics-strip">
+          <div class="metric-cell">
+            <span class="metric-name">Sharpe Ratio</span>
+            <span class="metric-data mono" id="stat-sharpeRatio">—</span>
+            <span class="metric-meta">Risk-adjusted return vs benchmark</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-name">Win Rate</span>
+            <span class="metric-data mono" id="stat-winRate">—</span>
+            <span class="metric-meta">Fraction of positive trades</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-name">Max Drawdown</span>
+            <span class="metric-data mono val-neg" id="stat-maxDrawdown">—</span>
+            <span class="metric-meta">Peak-to-trough capital risk</span>
+          </div>
+          <div class="metric-cell">
+            <span class="metric-name">Total Trades</span>
+            <span class="metric-data mono" id="stat-totalTrades">—</span>
+            <span class="metric-meta">Simulated signal executions</span>
+          </div>
+        </div>
+
+        <div class="chart-frame">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 600;">Cumulative Equity Trajectory (Baseline = 1.0)</span>
+            <span class="mono" style="font-size: 11.5px; color: var(--fin-accent);" id="lbl-chartHoverVal">Hover cursor over curve</span>
+          </div>
+          <canvas id="tbl-equityCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 5: ASSET MONITOR -->
+    <section id="tab-watchlist" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Asset Monitor &amp; Shift Alerts</h2>
+            <p class="panel-desc">Tracks unheld instruments and flags direction flips across subsequent runs</p>
+          </div>
+          <div class="control-row">
+            <input type="text" id="txt-watchSymbol" placeholder="Symbol (e.g. TSLA)" style="width: 140px; text-transform: uppercase;">
+            <select id="cmb-watchType">
+              <option value="stock">Stock</option>
+              <option value="crypto">Crypto</option>
+            </select>
+            <button id="btn-addWatch" class="btn btn-primary" onclick="Watchlist.add()">Track Asset</button>
+          </div>
+        </div>
+
+        <div class="data-grid-wrap">
+          <table id="tbl-watchlist">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Asset Class</th>
+                <th>Latest Signal</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-watchlist-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Asset monitor is empty.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 6: FEEDBACK AUDIT -->
+    <section id="tab-history" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Continuous Feedback Audit</h2>
+            <p class="panel-desc">Historical evaluation of predictions against actual price outcomes (FR-6.2)</p>
+          </div>
+          <div class="control-row">
+            <input type="text" id="txt-historySymbol" placeholder="Symbol" value="AAPL" style="width: 140px; text-transform: uppercase;">
+            <button id="btn-loadAudit" class="btn btn-subtle" onclick="Audit.load()">Load Audit Log</button>
+          </div>
+        </div>
+
+        <div class="data-grid-wrap">
+          <table id="tbl-history">
+            <thead>
+              <tr>
+                <th>Generated</th>
+                <th>Model</th>
+                <th>Predicted</th>
+                <th>Realized</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-history-body">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Input a symbol to inspect historical signal audits.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE 7: TERMINAL SETTINGS -->
+    <section id="tab-admin" class="tab-workspace">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-heading">
+            <h2 class="panel-title">Terminal Settings &amp; Health Diagnostics</h2>
+            <p class="panel-desc">Global tracked assets, retrain schedules, and price feed diagnostics (FR-7)</p>
+          </div>
+          <button id="btn-testFeeds" class="btn btn-subtle btn-xs" onclick="Admin.checkHealth()">Test Connectivity</button>
+        </div>
+
+        <div class="metrics-strip" style="margin-bottom: 16px;">
+          <div class="metric-cell">
+            <span class="metric-name">Batch Retrain Schedule</span>
+            <div class="control-row" style="margin-top: 6px;">
+              <input type="number" id="txt-retrainDays" min="1" max="30" value="7" style="width: 75px;">
+              <span style="font-size: 12px; color: var(--text-muted);">Days</span>
+              <button id="btn-saveConfig" class="btn btn-subtle btn-xs" onclick="Admin.saveConfig()">Save</button>
+            </div>
+            <span class="metric-meta">Configures automated retraining policy</span>
+          </div>
+
+          <div class="metric-cell">
+            <span class="metric-name">Register Global Asset</span>
+            <div class="control-row" style="margin-top: 6px;">
+              <input type="text" id="txt-adminSymbol" placeholder="Symbol" style="width: 110px; text-transform: uppercase;">
+              <select id="cmb-adminType">
+                <option value="stock">Stock</option>
+                <option value="crypto">Crypto</option>
+              </select>
+              <button id="btn-addTracked" class="btn btn-primary btn-xs" onclick="Admin.addTracked()">Register</button>
+            </div>
+            <span class="metric-meta">Adds symbol to system health sweeps</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <h3 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Tracked Registry</h3>
+            <div class="data-grid-wrap">
+              <table id="tbl-tracked">
+                <thead><tr><th>Symbol</th><th>Class</th><th>Action</th></tr></thead>
+                <tbody id="tbl-tracked-body">
+                  <tr><td colspan="3" style="text-align: center; color: var(--text-dim); padding: 16px;">Loading registry...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <h3 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Feed Connectivity Log</h3>
+            <div id="box-feedHealth" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; min-height: 120px; color: var(--text-muted);">
+              Click "Test Connectivity" to ping external price feeds.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: AUTHENTICATION -->
+  <div class="modal-backdrop" id="modal-auth">
+    <div class="modal-panel">
+      <div class="modal-bar">
+        <h3 style="font-size: 15px; font-weight: 700;" id="lbl-authTitle">Trader Access</h3>
+        <button class="modal-btn-close" onclick="closeModal('modal-auth')">&times;</button>
+      </div>
+
+      <div style="display: flex; gap: 6px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+        <button id="btn-authTabLogin" class="btn btn-primary btn-xs" style="flex: 1;" onclick="Auth.setMode('login')">Sign In</button>
+        <button id="btn-authTabRegister" class="btn btn-subtle btn-xs" style="flex: 1;" onclick="Auth.setMode('register')">Register</button>
+      </div>
+
+      <div class="field-group">
+        <label>Email Address</label>
+        <input type="email" id="txt-authEmail" placeholder="trader@tradesage.ai" required>
+      </div>
+
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="txt-authPassword" placeholder="••••••••" required>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-subtle" onclick="closeModal('modal-auth')">Cancel</button>
+        <button id="btn-authSubmit" class="btn btn-primary" onclick="Auth.submit()">Sign In</button>
+      </div>
     </div>
   </div>
 
-  <h2>Portfolio</h2>
-  <div class="panel">
-    <div class="row">
-      <input id="holdSymbol" type="text" placeholder="Symbol">
-      <select id="holdType"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
-      <input id="holdQty" type="number" step="any" placeholder="Quantity" style="width:100px">
-      <input id="holdPrice" type="number" step="any" placeholder="Buy price" style="width:110px">
-      <input id="holdDate" type="date">
-      <button onclick="addHolding()">Add holding</button>
+  <!-- MODAL: ADD HOLDING -->
+  <div class="modal-backdrop" id="modal-addHolding">
+    <div class="modal-panel">
+      <div class="modal-bar">
+        <h3 style="font-size: 15px; font-weight: 700;">Record Position</h3>
+        <button class="modal-btn-close" onclick="closeModal('modal-addHolding')">&times;</button>
+      </div>
+
+      <div class="field-group">
+        <label>Symbol</label>
+        <input type="text" id="txt-holdSymbol" placeholder="e.g. AAPL or BTC" style="text-transform: uppercase;">
+      </div>
+
+      <div class="field-group">
+        <label>Asset Class</label>
+        <select id="cmb-holdType">
+          <option value="stock">Equity / Stock</option>
+          <option value="crypto">Cryptocurrency</option>
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="field-group">
+          <label>Units / Quantity</label>
+          <input type="number" id="txt-holdQty" step="any" placeholder="10">
+        </div>
+        <div class="field-group">
+          <label>Entry Price ($)</label>
+          <input type="number" id="txt-holdPrice" step="any" placeholder="150.00">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label>Trade Date</label>
+        <input type="date" id="txt-holdDate">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-subtle" onclick="closeModal('modal-addHolding')">Cancel</button>
+        <button id="btn-saveHolding" class="btn btn-primary" onclick="Portfolio.submitAdd()">Record</button>
+      </div>
     </div>
-    <div class="row">
-      <input id="csvFile" type="file" accept=".csv">
-      <button onclick="importCsv()">Import CSV</button>
-      <span class="status" id="holdingStatus"></span>
-    </div>
-    <p>Total P&amp;L: <span id="totalPnl" class="mono">-</span></p>
-    <table id="holdingsTable">
-      <thead><tr><th>Asset</th><th>Type</th><th>Qty</th><th>Live Price</th><th>P&amp;L</th></tr></thead>
-      <tbody></tbody>
-    </table>
   </div>
 
-  <h2>Signal Engine</h2>
-  <div class="panel">
-    <div class="row">
-      <input id="signalSymbol" type="text" placeholder="Symbol (e.g. AAPL)" value="AAPL">
-      <select id="signalType"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
-      <button id="signalBtn" onclick="loadSignal()">Get signal</button>
-      <span class="status" id="signalStatus"></span>
+  <!-- MODAL: IMPORT CSV -->
+  <div class="modal-backdrop" id="modal-csv">
+    <div class="modal-panel">
+      <div class="modal-bar">
+        <h3 style="font-size: 15px; font-weight: 700;">CSV Position Import</h3>
+        <button class="modal-btn-close" onclick="closeModal('modal-csv')">&times;</button>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted);">
+        Upload a CSV file containing columns: <code>assetSymbol</code>, <code>assetType</code>, <code>quantity</code>, <code>buyPrice</code>, and <code>buyDate</code> (YYYY-MM-DD).
+      </p>
+      <div class="field-group">
+        <input type="file" id="file-csvUpload" accept=".csv">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-subtle" onclick="closeModal('modal-csv')">Cancel</button>
+        <button class="btn btn-primary" onclick="Portfolio.submitCsv()">Import</button>
+      </div>
     </div>
-    <div class="signal-grid" id="signalGrid"></div>
   </div>
 
-  <h2>Backtest</h2>
-  <div class="panel">
-    <div class="row">
-      <input id="backtestSymbol" type="text" placeholder="Symbol (e.g. AAPL)" value="AAPL">
-      <select id="backtestType"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
-      <select id="backtestModel"><option value="random_forest">Random Forest</option><option value="lstm">LSTM</option></select>
-      <button id="backtestBtn" onclick="loadBacktest()">Run backtest</button>
-      <span class="status" id="backtestStatus"></span>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-stack" id="toastStack"></div>
+
+  <!-- FOOTER -->
+  <footer class="terminal-footer">
+    <div>TradeSage AI · CE363 Project-III · CHARUSAT Standards Compliant</div>
+    <div style="color: var(--text-muted);">
+      ⚠️ <strong>Decision-Support Only</strong>: Signal outputs and backtest metrics do not constitute financial advice.
     </div>
-    <div class="metric-row" id="backtestMetrics"></div>
-    <canvas id="equityCanvas"></canvas>
-  </div>
+  </footer>
 
-  <h2>Watchlist</h2>
-  <div class="panel">
-    <div class="row">
-      <input id="watchSymbol" type="text" placeholder="Symbol">
-      <select id="watchType"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
-      <button onclick="addWatchlistItem()">Add to watchlist</button>
-      <span class="status" id="watchStatus"></span>
-    </div>
-    <table id="watchlistTable">
-      <thead><tr><th>Asset</th><th>Type</th><th>Latest Signal</th><th>Alert</th><th></th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <h2>Signal History <span class="status">(feedback loop — per-signal review, not an aggregate accuracy score)</span></h2>
-  <div class="panel">
-    <div class="row">
-      <input id="historySymbol" type="text" placeholder="Symbol (e.g. AAPL)" value="AAPL">
-      <button onclick="loadSignalHistory()">Load history</button>
-    </div>
-    <table id="historyTable">
-      <thead><tr><th>Date</th><th>Model</th><th>Predicted</th><th>Actual</th><th>Outcome</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <h2>Stock vs Crypto</h2>
-  <div class="panel">
-    <button onclick="loadComparison()">Refresh comparison</button>
-    <div class="metric-row" id="comparisonMetrics"></div>
-  </div>
-
-  <h2>Admin</h2>
-  <div class="panel">
-    <div class="row">
-      <input id="trackSymbol" type="text" placeholder="Symbol">
-      <select id="trackType"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
-      <button onclick="addTrackedAsset()">Track asset</button>
-      <input id="retrainDays" type="number" min="1" placeholder="Retrain interval (days)" style="width:180px">
-      <button onclick="saveRetrainConfig()">Save schedule</button>
-      <button onclick="checkHealth()">Check data source health</button>
-    </div>
-    <table id="trackedTable">
-      <thead><tr><th>Asset</th><th>Type</th><th></th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div id="healthOutput" class="status"></div>
-  </div>
-
-  <p class="disclaimer">
-    TradeSage AI signals are decision-support only, not financial advice.
-    Backtested performance does not guarantee future results.
-  </p>
-
-<script>
-const API_BASE = "http://localhost:5000";
-
-async function apiGet(path) {
-  const r = await fetch(`${API_BASE}${path}`, { credentials: "include" });
-  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
-}
-async function apiPost(path, body) {
-  const r = await fetch(`${API_BASE}${path}`, {
-    method: "POST", credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
-}
-
-async function loadPortfolio() {
-  const { ok, data } = await apiGet("/api/portfolio");
-  const loginStatus = document.getElementById("loginStatus");
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (!ok) {
-    document.getElementById("totalPnl").textContent = "log in to view portfolio";
-    loginStatus.textContent = "Not logged in — log in or register above first.";
-    logoutBtn.style.display = "none";
-    return;
-  }
-  loginStatus.textContent = "";
-  logoutBtn.style.display = "inline-block";
-  document.getElementById("totalPnl").textContent = data.totalPnl.toFixed(2);
-
-  const tbody = document.querySelector("#holdingsTable tbody");
-  tbody.innerHTML = "";
-  data.holdings.forEach((h) => {
-    const row = document.createElement("tr");
-    const pnlClass = h.unrealizedPnl >= 0 ? "pnl-positive" : "pnl-negative";
-    row.innerHTML = `
-      <td>${h.assetSymbol}</td>
-      <td>${h.assetType}</td>
-      <td class="mono">${h.quantity}</td>
-      <td class="mono">${h.livePrice.toFixed(2)}</td>
-      <td class="mono ${pnlClass}">${h.unrealizedPnl.toFixed(2)} (${h.unrealizedPnlPct.toFixed(1)}%)</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-async function login() {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
-  const status = document.getElementById("authStatus");
-  const { ok, data } = await apiPost("/api/login", { email, password });
-  status.textContent = ok ? `Logged in as ${data.email}` : (data.error || "Login failed");
-  if (ok) loadPortfolio();
-}
-
-async function register() {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
-  const status = document.getElementById("authStatus");
-  const { ok, data } = await apiPost("/api/register", { email, password });
-  status.textContent = ok ? "Registered — now log in." : (data.error || "Registration failed");
-}
-
-async function logout() {
-  await apiPost("/api/logout", {});
-  document.getElementById("authStatus").textContent = "Logged out.";
-  loadPortfolio();
-}
-
-async function addHolding() {
-  const status = document.getElementById("holdingStatus");
-  const body = {
-    assetSymbol: document.getElementById("holdSymbol").value.trim(),
-    assetType: document.getElementById("holdType").value,
-    quantity: parseFloat(document.getElementById("holdQty").value),
-    buyPrice: parseFloat(document.getElementById("holdPrice").value),
-    buyDate: document.getElementById("holdDate").value,
-  };
-  if (!body.assetSymbol || !body.buyDate || Number.isNaN(body.quantity) || Number.isNaN(body.buyPrice)) {
-    status.textContent = "Fill in symbol, quantity, buy price, and date.";
-    return;
-  }
-  const { ok, data } = await apiPost("/api/holdings", body);
-  status.textContent = ok ? "Holding added." : (data.error || "Could not add holding.");
-  if (ok) loadPortfolio();
-}
-
-async function importCsv() {
-  const status = document.getElementById("holdingStatus");
-  const fileInput = document.getElementById("csvFile");
-  if (!fileInput.files.length) {
-    status.textContent = "Choose a CSV file first.";
-    return;
-  }
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-  const r = await fetch(`${API_BASE}/api/holdings/import`, {
-    method: "POST", credentials: "include", body: formData,
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    status.textContent = data.error || "CSV import failed.";
-    return;
-  }
-  status.textContent = `Imported ${data.imported} row(s), ${data.errors.length} error(s).`;
-  loadPortfolio();
-}
-
-async function loadSignal() {
-  const symbol = document.getElementById("signalSymbol").value.trim();
-  const assetType = document.getElementById("signalType").value;
-  const btn = document.getElementById("signalBtn");
-  const status = document.getElementById("signalStatus");
-  const grid = document.getElementById("signalGrid");
-  if (!symbol) return;
-
-  btn.disabled = true;
-  // Signal generation trains models on demand (documented cold-start cost,
-  // ~17s first call per asset per day) — this isn't a stalled request.
-  status.textContent = "Generating signal (first call for an asset can take ~15-20s)...";
-  grid.innerHTML = "";
-
-  const { ok, data } = await apiGet(`/api/signal?assetSymbol=${encodeURIComponent(symbol)}&assetType=${assetType}`);
-  btn.disabled = false;
-
-  if (!ok) {
-    status.textContent = data.error || "Could not generate signal.";
-    return;
-  }
-  status.textContent = "";
-
-  data.signals.forEach((s) => {
-    const card = document.createElement("div");
-    card.className = "signal-card";
-    const pct = Math.round(s.confidenceScore * 100);
-    const featureItems = s.topContributingFeatures
-      .map(f => `<li><span>${f.feature}</span><span class="mono">${f.contribution.toFixed(3)}</span></li>`)
-      .join("");
-    card.innerHTML = `
-      <div class="signal-model">${s.modelUsed === "random_forest" ? "Random Forest (baseline)" : "LSTM"} · ${s.horizonDays}d horizon</div>
-      <div class="direction ${s.predictedDirection}">${s.predictedDirection.toUpperCase()}</div>
-      <div class="mono status">confidence ${pct}%</div>
-      <div class="confidence-track"><div class="confidence-fill" style="width:${pct}%"></div></div>
-      <ul class="feature-list">${featureItems}</ul>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-async function loadBacktest() {
-  const assetSymbol = document.getElementById("backtestSymbol").value.trim();
-  const assetType = document.getElementById("backtestType").value;
-  const modelUsed = document.getElementById("backtestModel").value;
-  const btn = document.getElementById("backtestBtn");
-  const status = document.getElementById("backtestStatus");
-  const metricsEl = document.getElementById("backtestMetrics");
-  if (!assetSymbol) return;
-
-  btn.disabled = true;
-  status.textContent = "Running backtest...";
-  metricsEl.innerHTML = "";
-  clearCanvas();
-
-  const { ok, data } = await apiPost("/api/backtest", { assetSymbol, assetType, modelUsed });
-  btn.disabled = false;
-
-  if (!ok) {
-    status.textContent = data.error || "Could not run backtest.";
-    return;
-  }
-  status.textContent = "";
-
-  // Honesty Framework: Sharpe / win-rate / max drawdown only — never
-  // raw accuracy, matching SRS NFR-6 / FR-4.2 (backend already drops
-  // _debugDirectionalAccuracy before this JSON is ever built).
-  metricsEl.innerHTML = `
-    <div class="metric"><div class="metric-label">Sharpe Ratio</div><div class="metric-value mono">${data.sharpeRatio.toFixed(2)}</div></div>
-    <div class="metric"><div class="metric-label">Win Rate</div><div class="metric-value mono">${(data.winRate * 100).toFixed(1)}%</div></div>
-    <div class="metric"><div class="metric-label">Max Drawdown</div><div class="metric-value mono pnl-negative">${(data.maxDrawdown * 100).toFixed(1)}%</div></div>
-    <div class="metric"><div class="metric-label">Total Trades</div><div class="metric-value mono">${data.totalTrades}</div></div>
-  `;
-  drawEquityCurve(data.equityCurve);
-}
-
-function clearCanvas() {
-  const canvas = document.getElementById("equityCanvas");
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawEquityCurve(points) {
-  const canvas = document.getElementById("equityCanvas");
-  const dpr = window.devicePixelRatio || 1;
-  const cssWidth = canvas.clientWidth || 600;
-  const cssHeight = 160;
-  canvas.width = cssWidth * dpr;
-  canvas.height = cssHeight * dpr;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, cssWidth, cssHeight);
-
-  if (!points || points.length < 2) {
-    ctx.fillStyle = "#6b7280";
-    ctx.font = "13px system-ui";
-    ctx.fillText("Not enough data to plot an equity curve.", 8, cssHeight / 2);
-    return;
-  }
-
-  const min = Math.min(...points), max = Math.max(...points);
-  const pad = 10;
-  const xStep = (cssWidth - pad * 2) / (points.length - 1);
-  const yScale = (cssHeight - pad * 2) / ((max - min) || 1);
-
-  ctx.strokeStyle = "#2f5d8a";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  points.forEach((v, i) => {
-    const x = pad + i * xStep;
-    const y = cssHeight - pad - (v - min) * yScale;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // baseline at starting equity (1.0) for visual reference
-  const zeroY = cssHeight - pad - (1 - min) * yScale;
-  ctx.strokeStyle = "#e3e1dc";
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  ctx.moveTo(pad, zeroY);
-  ctx.lineTo(cssWidth - pad, zeroY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-}
-
-// --- Phase 3: Watchlist ---
-async function loadWatchlist() {
-  const { ok, data } = await apiGet("/api/watchlist");
-  if (!ok) return;
-  const tbody = document.querySelector("#watchlistTable tbody");
-  tbody.innerHTML = "";
-  data.forEach((item) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${item.assetSymbol}</td>
-      <td>${item.assetType}</td>
-      <td class="mono">${item.latestSignal || "—"}</td>
-      <td>${item.signalChanged ? '<span class="pnl-negative">changed</span>' : "—"}</td>
-      <td><button onclick="removeWatchlistItem(${item.watchlistId})">Remove</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-async function addWatchlistItem() {
-  const assetSymbol = document.getElementById("watchSymbol").value.trim();
-  const assetType = document.getElementById("watchType").value;
-  const status = document.getElementById("watchStatus");
-  if (!assetSymbol) return;
-  const { ok, data } = await apiPost("/api/watchlist", { assetSymbol, assetType });
-  status.textContent = ok ? "Added." : (data.error || "Failed to add.");
-  if (ok) loadWatchlist();
-}
-async function removeWatchlistItem(watchlistId) {
-  const r = await fetch(`${API_BASE}/api/watchlist/${watchlistId}`, { method: "DELETE", credentials: "include" });
-  if (r.ok) loadWatchlist();
-}
-
-// --- Phase 3: Signal history / feedback loop ---
-async function loadSignalHistory() {
-  const assetSymbol = document.getElementById("historySymbol").value.trim();
-  if (!assetSymbol) return;
-  const { ok, data } = await apiGet(`/api/signal-history?assetSymbol=${encodeURIComponent(assetSymbol)}`);
-  const tbody = document.querySelector("#historyTable tbody");
-  tbody.innerHTML = "";
-  if (!ok) return;
-  data.forEach((row) => {
-    const tr = document.createElement("tr");
-    const outcomeLabel = row.status === "pending" ? "pending"
-      : (row.wasCorrect ? '<span class="pnl-positive">correct</span>' : '<span class="pnl-negative">missed</span>');
-    tr.innerHTML = `
-      <td class="mono">${row.generatedAt.slice(0, 10)}</td>
-      <td>${row.modelUsed}</td>
-      <td class="mono">${row.predictedDirection}</td>
-      <td class="mono">${row.actualDirection || "—"}</td>
-      <td>${outcomeLabel}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// --- Phase 3: Stock vs crypto comparison ---
-async function loadComparison() {
-  const { ok, data } = await apiGet("/api/portfolio/comparison");
-  const el = document.getElementById("comparisonMetrics");
-  if (!ok) return;
-  el.innerHTML = Object.entries(data).map(([type, m]) => `
-    <div class="metric">
-      <div class="metric-label">${type} (${m.holdingCount} held)</div>
-      <div class="metric-value mono ${m.totalPnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">${m.totalPnl.toFixed(2)}</div>
-    </div>
-  `).join("");
-}
-
-// --- Phase 3: Admin panel ---
-async function loadTrackedAssets() {
-  const { ok, data } = await apiGet("/api/admin/tracked-assets");
-  if (!ok) return;
-  const tbody = document.querySelector("#trackedTable tbody");
-  tbody.innerHTML = "";
-  data.forEach((a) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${a.assetSymbol}</td><td>${a.assetType}</td>
-      <td><button onclick="removeTrackedAsset(${a.trackedAssetId})">Remove</button></td>`;
-    tbody.appendChild(row);
-  });
-}
-async function addTrackedAsset() {
-  const assetSymbol = document.getElementById("trackSymbol").value.trim();
-  const assetType = document.getElementById("trackType").value;
-  if (!assetSymbol) return;
-  const { ok } = await apiPost("/api/admin/tracked-assets", { assetSymbol, assetType });
-  if (ok) loadTrackedAssets();
-}
-async function removeTrackedAsset(trackedAssetId) {
-  const r = await fetch(`${API_BASE}/api/admin/tracked-assets/${trackedAssetId}`, { method: "DELETE", credentials: "include" });
-  if (r.ok) loadTrackedAssets();
-}
-async function saveRetrainConfig() {
-  const retrainIntervalDays = parseInt(document.getElementById("retrainDays").value, 10);
-  if (!retrainIntervalDays) return;
-  await apiPost("/api/admin/config", { retrainIntervalDays });
-}
-async function checkHealth() {
-  const el = document.getElementById("healthOutput");
-  el.textContent = "Checking...";
-  const { ok, data } = await apiGet("/api/admin/health");
-  if (!ok) { el.textContent = "Health check failed."; return; }
-  el.innerHTML = data.map(h => `${h.assetSymbol} (${h.source}): ${h.status}`).join("<br>") || "No tracked assets yet.";
-}
-
-loadPortfolio();
-loadWatchlist();
-loadTrackedAssets();
-</script>
+  <!-- SCRIPT -->
+  <script src="js/app.js" defer></script>
 </body>
 </html>
