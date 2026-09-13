@@ -133,6 +133,62 @@ function closeModal(id) {
 
 /* --- AUTHENTICATION MODULE (FR-1) --- */
 const Auth = {
+  gatewayMode: "login",
+
+  setGatewayMode(mode) {
+    this.gatewayMode = mode;
+    const tabLogin = document.getElementById("btn-gateTabLogin");
+    const tabRegister = document.getElementById("btn-gateTabRegister");
+    const submitBtn = document.getElementById("btn-gateSubmit");
+    const title = document.getElementById("lbl-gatewayTitle");
+    const desc = document.getElementById("lbl-gatewayDesc");
+
+    if (mode === "login") {
+      tabLogin.classList.add("active");
+      tabRegister.classList.remove("active");
+      submitBtn.textContent = "Access Terminal";
+      title.textContent = "Trader Authentication";
+      desc.textContent = "Sign in to access your portfolio positions, real-time ML trading signals, and quantitative backtesting engines.";
+    } else {
+      tabRegister.classList.add("active");
+      tabLogin.classList.remove("active");
+      submitBtn.textContent = "Register & Launch Terminal";
+      title.textContent = "Register Trader Account";
+      desc.textContent = "Create an account to start tracking stock & crypto positions, executing ML signals, and storing backtests.";
+    }
+  },
+
+  async submitGateway() {
+    const email = document.getElementById("txt-gateEmail").value.trim();
+    const password = document.getElementById("txt-gatePassword").value;
+    if (!email || !password) {
+      Toast.show("Please enter your email and password.", "error");
+      return;
+    }
+
+    const path = this.gatewayMode === "login" ? "/api/login" : "/api/register";
+    const { ok, data } = await Api.fetch(path, {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!ok) {
+      Toast.show(data.error || "Authentication failed. Please check credentials.", "error");
+      return;
+    }
+
+    if (this.gatewayMode === "register") {
+      Toast.show("Account registered! Signing in...", "success");
+      const loginRes = await Api.fetch("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+      if (loginRes.ok) this.handleLoginSuccess(loginRes.data.email);
+    } else {
+      this.handleLoginSuccess(data.email);
+    }
+  },
+
   openModal() {
     this.setMode("login");
     openModal("modal-auth");
@@ -199,6 +255,13 @@ const Auth = {
     document.getElementById("userPill").innerHTML = `Trader: <strong>${email}</strong>`;
     document.getElementById("btn-openAuth").style.display = "none";
     document.getElementById("btn-logout").style.display = "inline-flex";
+
+    // Unlock Workspace & Hide Gateway Screen
+    const gateway = document.getElementById("authGateway");
+    const workspace = document.getElementById("mainWorkspace");
+    if (gateway) gateway.style.display = "none";
+    if (workspace) workspace.style.display = "block";
+
     Toast.show(`Connected as ${email}`, "success");
     loadAllTerminalData();
   },
@@ -209,6 +272,13 @@ const Auth = {
     document.getElementById("userPill").textContent = "Not Logged In";
     document.getElementById("btn-openAuth").style.display = "inline-flex";
     document.getElementById("btn-logout").style.display = "none";
+
+    // Lock Workspace & Show Gateway Screen
+    const gateway = document.getElementById("authGateway");
+    const workspace = document.getElementById("mainWorkspace");
+    if (gateway) gateway.style.display = "flex";
+    if (workspace) workspace.style.display = "none";
+
     Toast.show("Disconnected session.", "info");
     Portfolio.reset();
   }
@@ -837,12 +907,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Check active session silently
   Api.fetch("/api/portfolio").then(({ ok }) => {
+    const gateway = document.getElementById("authGateway");
+    const workspace = document.getElementById("mainWorkspace");
+
     if (ok) {
       document.getElementById("userPill").innerHTML = `Trader: <strong>Active Session</strong>`;
       document.getElementById("btn-openAuth").style.display = "none";
       document.getElementById("btn-logout").style.display = "inline-flex";
+      if (gateway) gateway.style.display = "none";
+      if (workspace) workspace.style.display = "block";
       loadAllTerminalData();
     } else {
+      if (gateway) gateway.style.display = "flex";
+      if (workspace) workspace.style.display = "none";
       Portfolio.reset();
     }
   });

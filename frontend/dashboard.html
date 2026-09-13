@@ -52,8 +52,50 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
     </div>
   </header>
 
-  <!-- WORKSPACE WRAPPER -->
-  <main class="workspace-wrapper">
+  <!-- AUTHENTICATION GATEWAY (SHOWN BEFORE LOGIN) -->
+  <div id="authGateway" class="auth-gateway-overlay">
+    <div class="auth-gateway-card">
+      <div class="auth-gateway-header">
+        <span class="auth-gateway-badge">
+          <span class="status-led" style="background: var(--fin-neutral);"></span>
+          Terminal Locked
+        </span>
+        <h2 class="auth-gateway-title" id="lbl-gatewayTitle">Trader Authentication</h2>
+        <p class="auth-gateway-desc" id="lbl-gatewayDesc">
+          Sign in to access your portfolio positions, real-time ML trading signals, and quantitative backtesting engines.
+        </p>
+      </div>
+
+      <div class="auth-gateway-tabs">
+        <button id="btn-gateTabLogin" class="auth-gateway-tab-btn active" onclick="Auth.setGatewayMode('login')">Sign In</button>
+        <button id="btn-gateTabRegister" class="auth-gateway-tab-btn" onclick="Auth.setGatewayMode('register')">Create Account</button>
+      </div>
+
+      <div class="field-group">
+        <label>Email Address</label>
+        <input type="email" id="txt-gateEmail" placeholder="trader@tradesage.ai" required>
+      </div>
+
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="txt-gatePassword" placeholder="••••••••" required>
+      </div>
+
+      <button id="btn-gateSubmit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 700;" onclick="Auth.submitGateway()">
+        Access Terminal
+      </button>
+
+      <div class="auth-gateway-features">
+        <span class="auth-gateway-feat-pill">Dual-Model AI (RF + LSTM)</span>
+        <span class="auth-gateway-feat-pill">SHAP Explainability</span>
+        <span class="auth-gateway-feat-pill">FinBERT Sentiment</span>
+        <span class="auth-gateway-feat-pill">ACID SQL Ledger</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSPACE WRAPPER (UNLOCKED AFTER LOGIN) -->
+  <main class="workspace-wrapper" id="mainWorkspace" style="display: none;">
 
     <!-- NAVIGATION TABS -->
     <nav class="terminal-tabs">
