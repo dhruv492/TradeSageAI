@@ -962,32 +962,11 @@ tbody tr:last-child td {
   padding: 2px 7px;
   border-radius: 4px;
 }
-
-.auth-demo-creds {
-  display: flex;
-  gap: 16px;
-  background: var(--bg-surface);
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  flex-wrap: wrap;
-}
-
-.demo-cred-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+.auth-demo-desc {
   font-size: 11.5px;
-}
-
-.demo-cred-label {
-  color: var(--text-dim);
-}
-
-.demo-cred-value {
-  color: var(--text-main);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
 }
 
 .btn-demo-instant {

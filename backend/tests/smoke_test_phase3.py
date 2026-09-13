@@ -12,6 +12,7 @@ Synopsis:
 import numpy as np
 import pandas as pd
 
+import conftest
 import price_service
 import portfolio_service
 from app import create_app

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from datetime import date, timedelta
 from flask import Flask
+import conftest
 from models import db, User, Holding
 import auth_service, portfolio_service, sentiment_service
 from feature_pipeline import buildFeatureFrame, labelDirection

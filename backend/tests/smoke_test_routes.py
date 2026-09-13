@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
+import conftest
 import price_service
 from app import create_app
 from models import db

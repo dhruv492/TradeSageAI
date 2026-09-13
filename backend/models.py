@@ -20,31 +20,11 @@ Naming Standard Deviation (documented, per project convention):
     deliberately and consistently across the whole schema, not just here.
 """
 
-import os
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
 
 db = SQLAlchemy()
-
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///tradesage.db")
-connectArgs = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connectArgs)
-SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
-
-def getDb():
-    """FastAPI database dependency providing a transactional SQLAlchemy session."""
-    dbSession = SessionLocal()
-    try:
-        yield dbSession
-    finally:
-        dbSession.close()
-
-def initDb():
-    """Creates all tbl_* tables in the bound engine (SQLite or PostgreSQL)."""
-    db.metadata.create_all(bind=engine)
 
 # Constants (ALL_CAPS per CHARUSAT standard)
 MODEL_BASELINE = "random_forest"

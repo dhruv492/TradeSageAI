@@ -79,10 +79,28 @@ def create_app(configOverrides=None):
 
     db.init_app(app)
 
-    # Real bug from earlier smoke testing: credentials + CORS need an
-    # explicit origin (not "*") or the browser silently drops the cookie.
-    CORS(app, supports_credentials=True,
-         origins=[app.config.get("DASHBOARD_ORIGIN", ALLOWED_DASHBOARD_ORIGIN_DEFAULT)])
+    allowedOrigins = [
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+    customOrigin = app.config.get("DASHBOARD_ORIGIN")
+    if customOrigin and customOrigin not in allowedOrigins:
+        allowedOrigins.append(customOrigin)
+
+    CORS(app, supports_credentials=True, origins=allowedOrigins)
+
+    with app.app_context():
+        db.create_all()
+        if not app.config.get("TESTING"):
+            demoUser = db.session.query(User).filter_by(email="trader@tradesage.ai").first()
+            if not demoUser:
+                from werkzeug.security import generate_password_hash
+                db.session.add(User(email="trader@tradesage.ai", passwordHash=generate_password_hash("Password123!")))
+                db.session.commit()
 
     loginManager = LoginManager()
     loginManager.init_app(app)
@@ -90,6 +108,11 @@ def create_app(configOverrides=None):
     @loginManager.user_loader
     def loadUser(userId):
         return db.session.get(User, int(userId))
+
+    @app.route("/")
+    def rootRedirect():
+        from flask import redirect
+        return redirect("/static/dashboard.html")
 
     @app.route("/api/register", methods=["POST"])
     def register():
@@ -224,12 +247,13 @@ def create_app(configOverrides=None):
 
         signalSeries = pd.Series(
             [row.predictedDirection for row in signalRowsQuery],
-            index=pd.DatetimeIndex([row.generatedAt.date() for row in signalRowsQuery]),
+            index=pd.to_datetime([row.generatedAt.date() for row in signalRowsQuery]).normalize(),
         )
         rangeStart = signalRowsQuery[0].generatedAt.date()
         rangeEnd = date.today()
         priceDf = price_service.getHistoricalPrices(assetSymbol, assetType)
-        priceSeries = priceDf["close"]
+        priceSeries = priceDf["close"].copy()
+        priceSeries.index = pd.to_datetime(priceSeries.index).normalize()
 
         metrics = runBacktest(priceSeries, signalSeries, horizonDays=horizonDays)
 
