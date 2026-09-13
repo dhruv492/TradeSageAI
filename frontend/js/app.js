@@ -87,6 +87,15 @@ const Api = {
         }
       });
       const data = await res.json().catch(() => ({}));
+      if (data && data.detail && !data.error) {
+        data.error = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+      }
+      if (res.status === 401 && path !== "/api/login" && path !== "/api/register" && path !== "/api/portfolio") {
+        Toast.show("Please log in or register an account first.", "info");
+        if (typeof Auth !== "undefined" && Auth.openModal) {
+          Auth.openModal();
+        }
+      }
       return { ok: res.ok, status: res.status, data };
     } catch (err) {
       return { ok: false, status: 0, data: { error: `Server offline (${err.message})` } };

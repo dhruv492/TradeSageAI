@@ -68,6 +68,8 @@ from schemas import (
 from signal_engine import trainRandomForestBaseline
 from signal_service import generateSignal
 
+from contextlib import asynccontextmanager
+
 # Configuration constants
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-in-production")
 SESSION_COOKIE_NAME = "session"
@@ -76,6 +78,14 @@ G_ModelCache: Dict[Any, Any] = {}
 
 # Session serializer
 G_Serializer = URLSafeTimedSerializer(SECRET_KEY, salt="tradesage-auth-session")
+
+
+@asynccontextmanager
+async def lifespan(appInstance: FastAPI):
+    """Initializes database tables on startup."""
+    initDb()
+    yield
+
 
 # FastAPI App instantiation with rich Swagger / OpenAPI metadata
 app = FastAPI(
@@ -93,6 +103,7 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS configuration supporting credentials from local dev servers
@@ -117,12 +128,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def onStartup():
-    """Initializes database tables on startup."""
-    initDb()
-
-
 # Mount static frontend directory
 frontendDir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
 if os.path.exists(frontendDir):
@@ -133,6 +138,12 @@ if os.path.exists(frontendDir):
 def rootRedirect():
     """Redirects base URL directly to dashboard."""
     return RedirectResponse(url="/static/dashboard.html")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Silently handles browser favicon requests."""
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --- Authentication Dependency ---
