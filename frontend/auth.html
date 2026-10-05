@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeSage AI — Account Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Immediate Theme Initialization to avoid FOUC
+    const savedTheme = localStorage.getItem("tradesage-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  </script>
+  <style>
+    body {
+      background-color: var(--bg-desk);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      transition: background-color var(--transition), color var(--transition);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-page-wrapper">
+    <!-- Top Navigation Header Bar -->
+    <div class="auth-header-bar">
+      <a href="/" class="auth-back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Back to TradeSage Overview
+      </a>
+
+      <!-- Theme Switcher Toggle Button -->
+      <button id="btn-themeToggle" class="theme-toggle-btn" onclick="Theme.toggle()" title="Toggle Theme (Dark / Light)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Main Auth Card -->
+    <div class="auth-card">
+      <div class="auth-card-stripe"></div>
+      
+      <div class="auth-card-body">
+        <!-- Status Pill Badge -->
+        <div class="auth-pill" id="authPill">
+          <span class="auth-pill-dot"></span>
+          <span id="authPillText">Secure Sign In</span>
+        </div>
+
+        <!-- Title & Subtitle -->
+        <h1 class="auth-title" id="authTitle">Sign in to your account</h1>
+        <p class="auth-subtitle" id="authSubtitle">Welcome back! Please enter your details to continue.</p>
+
+        <!-- Inline Alert -->
+        <div id="authAlert" class="auth-alert"></div>
+
+        <!-- Auth Form -->
+        <form id="authForm" onsubmit="event.preventDefault(); handleAuthSubmit();">
+          
+          <!-- Full Name (Registration only) -->
+          <div class="field-group" id="groupFullName" style="display: none; margin-bottom: 18px;">
+            <label class="field-label" for="txtFullName">FULL NAME</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input type="text" id="txtFullName" class="auth-input" placeholder="Alex Vance" autocomplete="name">
+            </div>
+          </div>
+
+          <!-- Email Address -->
+          <div class="field-group" style="margin-bottom: 18px;">
+            <label class="field-label" id="lblEmail" for="txtEmail">EMAIL ADDRESS</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input type="email" id="txtEmail" class="auth-input" placeholder="alex@company.com" required autocomplete="email">
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="field-group" style="margin-bottom: 18px;">
+            <label class="field-label" for="txtPassword">PASSWORD</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input type="password" id="txtPassword" class="auth-input" placeholder="Enter your password" required autocomplete="current-password">
+              <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('txtPassword', this)" title="Toggle password visibility">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Confirm Password (Registration only) -->
+          <div class="field-group" id="groupConfirmPassword" style="display: none; margin-bottom: 18px;">
+            <label class="field-label" for="txtConfirmPassword">CONFIRM PASSWORD</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input type="password" id="txtConfirmPassword" class="auth-input" placeholder="Re-enter your password" autocomplete="new-password">
+              <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('txtConfirmPassword', this)" title="Toggle password visibility">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Checkbox Options Row (Login) -->
+          <div class="auth-options-row" id="rowLoginOptions">
+            <label class="auth-checkbox-label">
+              <input type="checkbox" id="chkRememberMe" class="auth-checkbox" checked>
+              <span>Remember me</span>
+            </label>
+            <a href="javascript:void(0)" onclick="showAlert('Contact your system administrator or check local database credentials.', 'error')" class="auth-link">Forgot password?</a>
+          </div>
+
+          <!-- Checkbox Options Row (Registration) -->
+          <div class="auth-options-row" id="rowRegisterOptions" style="display: none;">
+            <label class="auth-checkbox-label">
+              <input type="checkbox" id="chkTerms" class="auth-checkbox" checked required>
+              <span>I agree to the <a href="index.html#section-faq" class="auth-link" target="_blank">Terms of Service</a> and <a href="index.html#section-faq" class="auth-link" target="_blank">Privacy Policy</a>.</span>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="btnAuthSubmit" class="btn-submit">
+            <span id="btnAuthText">→ Sign In</span>
+          </button>
+        </form>
+
+        <!-- Switcher Link -->
+        <div class="auth-switch-text" id="authSwitcher">
+          Don't have an account? <a href="javascript:void(0)" onclick="setMode('register')" class="auth-link">Sign up</a>
+        </div>
+
+        <!-- Footer Note -->
+        <div class="auth-footer">
+          <span>Secure SSL Encryption</span>
+          <span class="auth-footer-dot"></span>
+          <span>Privacy Protected</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (function() {
+      if (window.location.protocol.startsWith("http")) {
+        if (window.location.port === "5000") return "";
+        return `${window.location.protocol}//${window.location.hostname}:5000`;
+      }
+      return "http://localhost:5000";
+    })();
+    let currentMode = "login";
+
+    // Theme Controller matching TradeSage AI
+    const Theme = {
+      init() {
+        const saved = localStorage.getItem("tradesage-theme") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+      },
+      toggle() {
+        const current = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", current);
+        localStorage.setItem("tradesage-theme", current);
+      }
+    };
+    Theme.init();
+
+    // Read initial mode from URL search param or hash
+    function initMode() {
+      const params = new URLSearchParams(window.location.search);
+      const urlMode = params.get("mode") || (window.location.hash.includes("register") ? "register" : "login");
+      setMode(urlMode === "register" ? "register" : "login", false);
+    }
+
+    function setMode(mode, updateUrl = true) {
+      currentMode = mode;
+      clearAlert();
+
+      const pillText = document.getElementById("authPillText");
+      const title = document.getElementById("authTitle");
+      const subtitle = document.getElementById("authSubtitle");
+      const lblEmail = document.getElementById("lblEmail");
+      const groupFullName = document.getElementById("groupFullName");
+      const groupConfirmPassword = document.getElementById("groupConfirmPassword");
+      const rowLoginOptions = document.getElementById("rowLoginOptions");
+      const rowRegisterOptions = document.getElementById("rowRegisterOptions");
+      const btnText = document.getElementById("btnAuthText");
+      const switcher = document.getElementById("authSwitcher");
+      const txtPassword = document.getElementById("txtPassword");
+
+      if (mode === "register") {
+        pillText.textContent = "Get Started";
+        title.textContent = "Create your account";
+        subtitle.textContent = "Get started with personal trading intelligence in under a minute.";
+        lblEmail.textContent = "WORK EMAIL";
+        groupFullName.style.display = "block";
+        groupConfirmPassword.style.display = "block";
+        rowLoginOptions.style.display = "none";
+        rowRegisterOptions.style.display = "flex";
+        btnText.textContent = "→ Create Account";
+        txtPassword.placeholder = "At least 8 characters";
+        switcher.innerHTML = 'Already have an account? <a href="javascript:void(0)" onclick="setMode(\'login\')" class="auth-link">Sign in</a>';
+      } else {
+        pillText.textContent = "Secure Sign In";
+        title.textContent = "Sign in to your account";
+        subtitle.textContent = "Welcome back! Please enter your details to continue.";
+        lblEmail.textContent = "EMAIL ADDRESS";
+        groupFullName.style.display = "none";
+        groupConfirmPassword.style.display = "none";
+        rowLoginOptions.style.display = "flex";
+        rowRegisterOptions.style.display = "none";
+        btnText.textContent = "→ Sign In";
+        txtPassword.placeholder = "Enter your password";
+        switcher.innerHTML = 'Don\'t have an account? <a href="javascript:void(0)" onclick="setMode(\'register\')" class="auth-link">Sign up</a>';
+      }
+
+      if (updateUrl) {
+        const url = new URL(window.location);
+        url.searchParams.set("mode", mode);
+        window.history.replaceState({}, "", url);
+      }
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+
+      if (input.type === "password") {
+        input.type = "text";
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>`;
+      } else {
+        input.type = "password";
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>`;
+      }
+    }
+
+    function showAlert(message, type = "error") {
+      const alertBox = document.getElementById("authAlert");
+      alertBox.textContent = message;
+      alertBox.className = `auth-alert auth-alert-${type}`;
+      alertBox.style.display = "block";
+    }
+
+    function clearAlert() {
+      const alertBox = document.getElementById("authAlert");
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
+    }
+
+    async function handleAuthSubmit() {
+      clearAlert();
+      const email = document.getElementById("txtEmail").value.trim();
+      const password = document.getElementById("txtPassword").value;
+      const submitBtn = document.getElementById("btnAuthSubmit");
+
+      if (!email || !password) {
+        showAlert("Please enter your email and password.");
+        return;
+      }
+
+      if (currentMode === "register") {
+        const confirmPass = document.getElementById("txtConfirmPassword").value;
+        const termsAccepted = document.getElementById("chkTerms").checked;
+
+        if (!termsAccepted) {
+          showAlert("Please accept the Terms of Service and Privacy Policy to continue.");
+          return;
+        }
+
+        if (password.length < 8) {
+          showAlert("Password must be at least 8 characters.");
+          return;
+        }
+
+        if (password !== confirmPass) {
+          showAlert("Passwords do not match. Please verify.");
+          return;
+        }
+      }
+
+      submitBtn.disabled = true;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = `<span>Processing...</span>`;
+
+      // Visual progress feedback for cloud DB wake-up
+      const statusTimer1 = setTimeout(() => {
+        if (submitBtn.disabled) submitBtn.innerHTML = `<span>Connecting to cloud DB...</span>`;
+      }, 2000);
+      const statusTimer2 = setTimeout(() => {
+        if (submitBtn.disabled) submitBtn.innerHTML = `<span>Waking up database...</span>`;
+      }, 5500);
+
+      // Safety timeout: 18s abort controller so it never hangs indefinitely
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 18000);
+
+      try {
+        if (currentMode === "register") {
+          // Register account
+          const regRes = await fetch(`${API_BASE}/api/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            signal: controller.signal,
+            body: JSON.stringify({ email, password })
+          });
+
+          const regData = await regRes.json().catch(() => ({}));
+          if (!regRes.ok) {
+            showAlert(regData.error || "Registration failed. Email may already be in use.");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+
+          // Auto-login registered user
+          const loginRes = await fetch(`${API_BASE}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            signal: controller.signal,
+            body: JSON.stringify({ email, password })
+          });
+
+          if (loginRes.ok) {
+            const loginData = await loginRes.json().catch(() => ({}));
+            if (loginData && (loginData.email || loginData.userId)) {
+              localStorage.setItem("tradesage_user", JSON.stringify(loginData));
+              localStorage.setItem("tradesage_token", loginData.token || String(loginData.userId || 1));
+            }
+            showAlert("Account created successfully! Loading trading terminal...", "success");
+            const target = window.location.pathname.includes("/static/") ? "dashboard.html" : "/dashboard";
+            setTimeout(() => {
+              window.location.href = target;
+            }, 400);
+            return;
+          }
+        } else {
+          // Login existing account
+          const loginRes = await fetch(`${API_BASE}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            signal: controller.signal,
+            body: JSON.stringify({ email, password })
+          });
+
+          const loginData = await loginRes.json().catch(() => ({}));
+          if (!loginRes.ok) {
+            showAlert(loginData.error || "Invalid email or password. Please try again.");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            return;
+          }
+
+          if (loginData && (loginData.email || loginData.userId)) {
+            localStorage.setItem("tradesage_user", JSON.stringify(loginData));
+            localStorage.setItem("tradesage_token", loginData.token || String(loginData.userId || 1));
+          }
+
+          showAlert("Authentication successful! Loading trading terminal...", "success");
+          const target = window.location.pathname.includes("/static/") ? "dashboard.html" : "/dashboard";
+          setTimeout(() => {
+            window.location.href = target;
+          }, 400);
+          return;
+        }
+      } catch (err) {
+        if (err.name === "AbortError") {
+          showAlert("Connection timed out. The server or cloud database took too long to respond. Please try again.");
+        } else {
+          showAlert(`Network error: ${err.message}. Is backend server running on port 5000?`);
+        }
+      } finally {
+        clearTimeout(statusTimer1);
+        clearTimeout(statusTimer2);
+        clearTimeout(timeoutId);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener("DOMContentLoaded", initMode);
+    window.addEventListener("popstate", initMode);
+  </script>
+</body>
+</html>

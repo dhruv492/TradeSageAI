@@ -45,7 +45,7 @@ Globals accessed/modified: None (stateless service; no G- globals).
 import numpy as np
 import pandas as pd
 
-HORIZON_DAYS_DEFAULT = 3     # ALL_CAPS constants per CHARUSAT standard
+HORIZON_DAYS_DEFAULT = 3     # ALL_CAPS constants per project coding standard
 TRADING_DAYS_PER_YEAR = 252
 DIRECTION_MULTIPLIER = {"up": 1, "down": -1, "neutral": 0}
 

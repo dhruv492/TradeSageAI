@@ -29,3 +29,5 @@ Thumbs.db
 # --- Project artifacts we don't want committed ---
 *.zip
 MANUAL_TESTING_GUIDE.md
+.bob/
+

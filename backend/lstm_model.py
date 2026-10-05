@@ -41,7 +41,7 @@ except ImportError:
     nn = None
     TORCH_AVAILABLE = False
 
-WINDOW_SIZE_DEFAULT = 20   # ALL_CAPS constants per CHARUSAT standard
+WINDOW_SIZE_DEFAULT = 20   # ALL_CAPS constants per standard naming convention
 HIDDEN_SIZE_DEFAULT = 32
 EPOCHS_DEFAULT = 15
 LEARNING_RATE_DEFAULT = 0.001

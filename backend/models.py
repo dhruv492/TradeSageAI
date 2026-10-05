@@ -14,8 +14,8 @@ Synopsis:
     matching SRS Section 5 (Data Requirements).
 
 Naming Standard Deviation (documented, per project convention):
-    Table name prefixes use underscore (tbl_Signal) rather than the hyphen
-    shown in CHARUSAT v1.0 (tbl-Signal), because SQLAlchemy/most SQL engines
+    Table name prefixes use underscore (tbl_Signal) rather than hyphens
+    (tbl-Signal), because SQLAlchemy/most SQL engines
     do not accept hyphens in unquoted identifiers. This deviation was made
     deliberately and consistently across the whole schema, not just here.
 """
@@ -26,7 +26,7 @@ from flask_login import UserMixin
 
 db = SQLAlchemy()
 
-# Constants (ALL_CAPS per CHARUSAT standard)
+# Constants (ALL_CAPS per standard naming convention)
 MODEL_BASELINE = "random_forest"
 MODEL_LSTM = "lstm"
 DIRECTION_UP = "up"

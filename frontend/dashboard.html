@@ -1,30 +1,17 @@
-<!--
-Module      : dashboard.html
-Date        : 2026-09-03
-Author      : Dhruv
-Modification History:
-    2026-08-07 - Initial version: basic portfolio table (FR-6.1).
-    2026-08-29 - Added Signal Engine (FR-3.3/3.4) and Backtest display (FR-4.1-4.3).
-    2026-08-30 - Added Phase 3: Watchlist, Feedback loop, Stock vs Crypto, Admin.
-    2026-09-03 - Modularized release: Clean semantic markup linked to css/style.css
-                 and js/app.js. Institutional trading terminal aesthetic,
-                 CHARUSAT v1.0 standards, model divergence indicators, and theme switcher.
-Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TradeSage AI — Trading Intelligence Terminal</title>
+  <title>TradeSage AI — Natural Financial Intelligence Terminal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <!-- TERMINAL TOP DECK -->
+  <!-- Top Deck Header -->
   <header class="terminal-deck">
     <div class="desk-identity">
       <div class="desk-logo">
@@ -33,236 +20,194 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
         </div>
         <span>TradeSage AI</span>
       </div>
-      <span class="desk-badge">TERMINAL v2.2</span>
+      <span class="desk-badge">INTELLIGENCE DESK</span>
     </div>
 
     <div class="desk-status-bar">
       <div class="status-pill">
-        <span class="status-led"></span>
-        <span>Signal Engine Connected</span>
+        <span class="status-led led-pulse"></span>
+        <span>Dual ML Engine Online</span>
       </div>
       <div class="session-controls">
         <button id="btn-themeToggle" class="theme-toggle-btn" onclick="Theme.toggle()" title="Toggle Theme">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </button>
-        <span class="status-pill" id="userPill">Not Logged In</span>
+        <span class="status-pill mono" id="userPill">Not Logged In</span>
         <button id="btn-openAuth" class="btn btn-subtle btn-xs" onclick="Auth.openModal()">Sign In / Register</button>
         <button id="btn-logout" class="btn btn-subtle btn-xs" onclick="Auth.logout()" style="display: none;">Sign Out</button>
       </div>
     </div>
   </header>
 
-  <!-- AUTHENTICATION GATEWAY (SHOWN BEFORE LOGIN) -->
+  <!-- Live Market Ribbon -->
+  <div class="market-ribbon">
+    <div class="ribbon-item"><span class="sym">BTC/USD</span> <span class="val">$68,450.00</span> <span class="val-pos">▲ +3.42%</span></div>
+    <div class="ribbon-item"><span class="sym">NVDA</span> <span class="val">$128.85</span> <span class="val-pos">▲ +2.78%</span></div>
+    <div class="ribbon-item"><span class="sym">AAPL</span> <span class="val">$231.20</span> <span class="val-pos">▲ +1.15%</span></div>
+    <div class="ribbon-item"><span class="sym">ETH/USD</span> <span class="val">$3,518.40</span> <span class="val-pos">▲ +2.04%</span></div>
+    <div class="ribbon-item"><span class="sym">MSFT</span> <span class="val">$448.10</span> <span class="val-neg">▼ -0.38%</span></div>
+    <div class="ribbon-item"><span class="sym">SPY</span> <span class="val">$564.30</span> <span class="val-pos">▲ +0.64%</span></div>
+  </div>
+
+  <!-- Auth Gateway Overlay (Before Login) -->
   <div id="authGateway" class="auth-gateway-overlay">
-    <div class="auth-gateway-ambient-glow"></div>
-    
-    <!-- Real-Time Institutional Market Ribbon -->
-    <div class="auth-ticker-strip">
-      <div class="auth-ticker-item"><span class="ticker-sym">BTC-USD</span> <span class="ticker-val">$68,450.00</span> <span class="val-pos">▲ +3.42%</span></div>
-      <div class="auth-ticker-item"><span class="ticker-sym">NVDA</span> <span class="ticker-val">$128.85</span> <span class="val-pos">▲ +2.78%</span></div>
-      <div class="auth-ticker-item"><span class="ticker-sym">AAPL</span> <span class="ticker-val">$231.20</span> <span class="val-pos">▲ +1.15%</span></div>
-      <div class="auth-ticker-item"><span class="ticker-sym">ETH-USD</span> <span class="ticker-val">$3,518.40</span> <span class="val-pos">▲ +2.04%</span></div>
-      <div class="auth-ticker-item"><span class="ticker-sym">MSFT</span> <span class="ticker-val">$448.10</span> <span class="val-neg">▼ -0.38%</span></div>
-      <div class="auth-ticker-item"><span class="ticker-sym">SPY</span> <span class="ticker-val">$564.30</span> <span class="val-pos">▲ +0.64%</span></div>
-    </div>
-
-    <div class="auth-gateway-card">
-      <div class="auth-gateway-header">
-        <div class="auth-brand-badge">
-          <div class="auth-brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/>
-            </svg>
-          </div>
-          <span class="auth-status-chip">
-            <span class="status-led led-pulse"></span>
-            Terminal v2.2 Ready
-          </span>
+    <div class="auth-card" style="width: 100%; max-width: 440px; margin: auto;">
+      <div class="auth-card-stripe"></div>
+      
+      <div class="auth-card-body" style="padding: 32px 30px 24px 30px;">
+        <div class="auth-pill" id="lbl-gatewayPill">
+          <span class="auth-pill-dot"></span>
+          <span id="lbl-gatewayPillText">Secure Sign In</span>
         </div>
-        <h2 class="auth-gateway-title" id="lbl-gatewayTitle">TradeSage Intelligence Terminal</h2>
-        <p class="auth-gateway-desc" id="lbl-gatewayDesc">
-          Institutional algorithmic trading platform with dual ML signal engines, FinBERT sentiment scoring, and quantitative backtesting.
+
+        <h2 class="auth-title" id="lbl-gatewayTitle" style="font-size: 24px; margin-bottom: 6px;">Sign in to your account</h2>
+        <p class="auth-subtitle" id="lbl-gatewayDesc" style="font-size: 13px; margin-bottom: 20px;">
+          Welcome back! Please enter your details to continue.
         </p>
-      </div>
 
-      <!-- Quick 1-Click Demo Evaluation Box -->
-      <div class="auth-demo-card">
-        <div class="auth-demo-card-header">
-          <div class="auth-demo-tag">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            <span>Pre-Configured Demo Workspace</span>
+        <form id="frm-gateway" onsubmit="event.preventDefault(); Auth.submitGateway();">
+          <div class="field-group" style="margin-bottom: 16px;">
+            <label class="field-label" id="lbl-gateEmailLabel" for="txt-gateEmail">EMAIL ADDRESS</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input type="email" id="txt-gateEmail" class="auth-input" placeholder="alex@company.com" required>
+            </div>
           </div>
-          <span class="auth-demo-badge">1-Click Launch</span>
-        </div>
-        <p class="auth-demo-desc">
-          Instant institutional preview loaded with test portfolios, ML signals, and backtest history.
-        </p>
-        <button id="btn-quickDemo" class="btn btn-demo-instant" onclick="Auth.quickDemoLogin()">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <span>1-Click Demo Sign In</span>
-        </button>
-      </div>
 
-      <div class="auth-divider">
-        <span>OR ENTER CREDENTIALS MANUALLY</span>
-      </div>
-
-      <!-- Segmented Mode Switch -->
-      <div class="auth-gateway-tabs">
-        <button id="btn-gateTabLogin" class="auth-gateway-tab-btn active" onclick="Auth.setGatewayMode('login')">
-          Sign In
-        </button>
-        <button id="btn-gateTabRegister" class="auth-gateway-tab-btn" onclick="Auth.setGatewayMode('register')">
-          Create Account
-        </button>
-      </div>
-
-      <!-- Input Fields -->
-      <div class="auth-fields-wrap">
-        <div class="field-group">
-          <label for="txt-gateEmail">Email Address</label>
-          <div class="input-icon-wrap">
-            <svg class="input-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <input type="email" id="txt-gateEmail" placeholder="trader@tradesage.ai" onkeydown="if(event.key==='Enter') Auth.submitGateway()" required>
+          <div class="field-group" style="margin-bottom: 18px;">
+            <label class="field-label" for="txt-gatePassword">PASSWORD</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input type="password" id="txt-gatePassword" class="auth-input" placeholder="Enter your password" required>
+              <button type="button" class="btn-toggle-eye" onclick="Auth.toggleEye('txt-gatePassword', this)" title="Toggle visibility">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div class="field-group">
-          <label for="txt-gatePassword">Password</label>
-          <div class="input-icon-wrap">
-            <svg class="input-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input type="password" id="txt-gatePassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') Auth.submitGateway()" required>
+          <div class="auth-options-row" style="margin-bottom: 20px;">
+            <label class="auth-checkbox-label">
+              <input type="checkbox" id="chkGateRemember" class="auth-checkbox" checked>
+              <span>Remember me</span>
+            </label>
+            <a href="javascript:void(0)" onclick="Toast.show('Contact your administrator for credentials reset.', 'info')" class="auth-link">Forgot password?</a>
           </div>
+
+          <button type="submit" id="btn-gateSubmit" class="btn-submit">
+            <span>→ Sign In</span>
+          </button>
+        </form>
+
+        <div class="auth-switch-text" style="margin-top: 18px;">
+          Don't have an account? <a href="auth.html?mode=register" class="auth-link">Sign up</a>
         </div>
-      </div>
 
-      <button id="btn-gateSubmit" class="btn btn-primary btn-gate-submit" onclick="Auth.submitGateway()">
-        <span>Access Trading Terminal</span>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-      </button>
-
-      <div class="auth-gateway-features">
-        <span class="auth-gateway-feat-pill">
-          <span class="feat-dot"></span> Dual-Model AI (RF + LSTM)
-        </span>
-        <span class="auth-gateway-feat-pill">
-          <span class="feat-dot"></span> SHAP Explainability
-        </span>
-        <span class="auth-gateway-feat-pill">
-          <span class="feat-dot"></span> FinBERT Sentiment
-        </span>
-        <span class="auth-gateway-feat-pill">
-          <span class="feat-dot"></span> SQLAlchemy ORM Ledger
-        </span>
-      </div>
-
-      <div class="auth-security-note">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>Secure Signed Sessions • ACID Relational Persistence</span>
+        <div class="auth-footer" style="margin-top: 20px; padding-top: 16px;">
+          <span>Secure SSL Encryption</span>
+          <span class="auth-footer-dot"></span>
+          <span>Privacy Protected</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- WORKSPACE WRAPPER (UNLOCKED AFTER LOGIN) -->
-  <main class="workspace-wrapper" id="mainWorkspace" style="display: none;">
+  <!-- Primary Workspace Content (Shown on Login) -->
+  <main class="terminal-main" id="mainWorkspace" style="display: none;">
+    
+    <!-- Navigation Deck -->
+    <div class="nav-deck">
+      <div class="segmented-tabs">
+        <button class="term-tab tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+          Portfolio <span class="tab-pill" id="tabCountHoldings">0</span>
+        </button>
+        <button class="term-tab tab-btn" data-tab="signal" onclick="switchTab('signal')">
+          Signal Engine
+        </button>
+        <button class="term-tab tab-btn" data-tab="backtest" onclick="switchTab('backtest')">
+          Honesty Backtesting
+        </button>
+        <button class="term-tab tab-btn" data-tab="watchlist" onclick="switchTab('watchlist')">
+          Watchlist <span class="tab-pill" id="tabCountWatchlist">0</span>
+        </button>
+        <button class="term-tab tab-btn" data-tab="admin" onclick="switchTab('admin')">
+          Admin Control
+        </button>
+      </div>
 
-    <!-- NAVIGATION TABS -->
-    <nav class="terminal-tabs">
-      <button class="term-tab active" data-tab="overview" onclick="switchTab('overview')">
-        <span>Overview</span>
-      </button>
-      <button class="term-tab" data-tab="portfolio" onclick="switchTab('portfolio')">
-        <span>Position Book</span>
-        <span class="tab-count" id="tabCountHoldings">0</span>
-      </button>
-      <button class="term-tab" data-tab="signal" onclick="switchTab('signal')">
-        <span>Signal Matrix</span>
-      </button>
-      <button class="term-tab" data-tab="backtest" onclick="switchTab('backtest')">
-        <span>Strategy Backtest</span>
-      </button>
-      <button class="term-tab" data-tab="watchlist" onclick="switchTab('watchlist')">
-        <span>Asset Monitor</span>
-        <span class="tab-count" id="tabCountWatchlist">0</span>
-      </button>
-      <button class="term-tab" data-tab="history" onclick="switchTab('history')">
-        <span>Feedback Audit</span>
-      </button>
-      <button class="term-tab" data-tab="admin" onclick="switchTab('admin')">
-        <span>Terminal Settings</span>
-      </button>
-    </nav>
+      <div class="session-actions" style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-xs" onclick="Portfolio.openAddModal()">
+          + Add Position
+        </button>
+        <button class="btn btn-subtle btn-xs" onclick="Portfolio.openCsvModal()">
+          Import CSV
+        </button>
+      </div>
+    </div>
 
-    <!-- WORKSPACE 1: OVERVIEW -->
+    <!-- SECTION 1: PORTFOLIO OVERVIEW -->
     <section id="tab-overview" class="tab-workspace active">
-      <div class="metrics-strip">
-        <div class="metric-cell">
-          <span class="metric-name">Portfolio Unrealized P&amp;L</span>
-          <span class="metric-data mono" id="stat-totalPnl">—</span>
-          <span class="metric-meta">Aggregated open position valuation</span>
+      <div class="metrics-grid">
+        <div class="metric-tile">
+          <div class="metric-tile-label">Total Realized & Unrealized P&L</div>
+          <div class="metric-data mono" id="stat-totalPnl">$0.00</div>
+          <div class="metric-tile-sub">Weighted cost-basis return across all positions</div>
         </div>
-        <div class="metric-cell">
-          <span class="metric-name">Equity Positions</span>
-          <span class="metric-data mono" id="stat-stockPnl">—</span>
-          <span class="metric-meta" id="stat-stockCount">0 active holdings</span>
+        <div class="metric-tile">
+          <div class="metric-tile-label">Equity Allocation P&L</div>
+          <div class="metric-data mono" id="stat-stockPnl">$0.00</div>
+          <div class="metric-tile-sub" id="stat-stockCount">0 position(s)</div>
         </div>
-        <div class="metric-cell">
-          <span class="metric-name">Crypto Positions</span>
-          <span class="metric-data mono" id="stat-cryptoPnl">—</span>
-          <span class="metric-meta" id="stat-cryptoCount">0 active holdings</span>
+        <div class="metric-tile">
+          <div class="metric-tile-label">Crypto Allocation P&L</div>
+          <div class="metric-data mono" id="stat-cryptoPnl">$0.00</div>
+          <div class="metric-tile-sub" id="stat-cryptoCount">0 position(s)</div>
         </div>
-        <div class="metric-cell">
-          <span class="metric-name">Signal Alerts</span>
-          <span class="metric-data mono" id="stat-alertsCount">0</span>
-          <span class="metric-meta">Directional shifts flagged</span>
+        <div class="metric-tile">
+          <div class="metric-tile-label">Watchlist Shift Alerts</div>
+          <div class="metric-data mono val-neu" id="stat-alertsCount">0</div>
+          <div class="metric-tile-sub">Symbols with changed signal trajectory</div>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Model Architecture &amp; Methodology</h2>
-            <p class="panel-desc">Dual-model direction prediction with SHAP explainability and zero black-box risk</p>
-          </div>
-          <button class="btn btn-primary btn-xs" onclick="switchTab('signal')">Launch Signal Matrix →</button>
-        </div>
-        <p style="font-size: 13px; color: var(--text-muted); max-width: 860px;">
-          TradeSage AI combines technical indicators (RSI, MACD, Volume Delta, SMA) with NLP sentiment scoring. Predictions are rendered via two parallel architectures: a <strong>Random Forest Classifier</strong> (tabular baseline) and a <strong>Shallow PyTorch LSTM</strong> (temporal sequence learner). When both models diverge on directional bias, an explicit risk warning is highlighted.
-        </p>
-      </div>
-    </section>
-
-    <!-- WORKSPACE 2: PORTFOLIO TRACKER -->
-    <section id="tab-portfolio" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Recorded Positions</h2>
-            <p class="panel-desc">Mark-to-market valuations for equities and cryptocurrencies</p>
-          </div>
-          <div class="control-row">
-            <button id="btn-addHolding" class="btn btn-primary btn-xs" onclick="Portfolio.openAddModal()">+ Add Position</button>
-            <button id="btn-importCsv" class="btn btn-subtle btn-xs" onclick="Portfolio.openCsvModal()">Import CSV</button>
-            <button id="btn-refreshHoldings" class="btn btn-subtle btn-xs" onclick="Portfolio.load()">↻ Refresh</button>
+      <!-- Position Table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Live Position Ledger</div>
+            <div class="card-desc">Positions re-evaluated in real time against Yahoo Finance &amp; Binance price feeds — click any row to expand full details</div>
           </div>
         </div>
-
-        <div class="data-grid-wrap">
+        <div class="table-wrap">
           <table id="tbl-holdings">
             <thead>
               <tr>
+                <th></th><!-- expand toggle -->
                 <th>Symbol</th>
-                <th>Asset Class</th>
+                <th>Class</th>
                 <th>Units</th>
-                <th>Live Price</th>
-                <th>Unrealized P&amp;L</th>
+                <th>Avg Cost</th>
+                <th>Spot Price</th>
+                <th>P&amp;L %</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody id="tbl-holdings-body">
               <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 24px;">
-                  Log in to inspect your portfolio positions.
+                <td colspan="8" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                  No active holdings recorded. Click "+ Add Position" or "Import CSV" to begin.
                 </td>
               </tr>
             </tbody>
@@ -271,209 +216,313 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
       </div>
     </section>
 
-    <!-- WORKSPACE 3: SIGNAL MATRIX -->
+    <!-- SECTION 2: SIGNAL ENGINE -->
     <section id="tab-signal" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Dual-Model Directional Signal Matrix</h2>
-            <p class="panel-desc">Random Forest Baseline vs. Shallow LSTM with SHAP Factor Decomposition</p>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Dual-Model Algorithmic Signal Engine</div>
+            <div class="card-desc">Side-by-side inference comparing Scikit-Learn Random Forest baseline with shallow PyTorch LSTM and SHAP explainability</div>
           </div>
-          <div class="control-row">
-            <input type="text" id="txt-signalSymbol" placeholder="Symbol (e.g. AAPL)" value="AAPL" style="width: 140px; text-transform: uppercase;">
-            <select id="cmb-signalType">
-              <option value="stock">Equity / Stock</option>
+        </div>
+
+        <div class="control-bar">
+          <!-- Asset search with dropdown — same UX as portfolio add -->
+          <div class="signal-search-wrap" style="position: relative;">
+            <input type="text" id="txt-signalSymbol"
+              placeholder="Search asset (e.g. AAPL, BTC, NVDA…)"
+              style="width: 260px; text-transform: uppercase;"
+              autocomplete="off"
+              oninput="Signals.onSymbolInput(this.value)"
+              onfocus="Signals.onSymbolInput(this.value)">
+            <div id="dropdown-signalSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+          </div>
+          <select id="cmb-signalType">
+            <option value="stock">Stock / Traditional Equity</option>
+            <option value="crypto">Cryptocurrency</option>
+          </select>
+          <button id="btn-genSignals" class="btn btn-primary" onclick="Signals.generate()">
+            Evaluate Trajectory
+          </button>
+        </div>
+
+        <!-- Divergence Warning Box -->
+        <div id="divergenceAlert" class="divergence-alert" style="display: none;">
+          <span id="divergenceMsg">Models have diverged.</span>
+        </div>
+
+        <!-- Generated Model Matrix (also hosts the loading state) -->
+        <div id="modelsMatrix" class="models-matrix">
+          <div class="matrix-cell sig-idle-cell" style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 32px;">
+            Search for an asset above and click "Evaluate Trajectory" to run dual-model inference.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: HONESTY BACKTESTING -->
+    <section id="tab-backtest" class="tab-workspace">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Walk-Forward Honesty Backtesting</div>
+            <div class="card-desc">Simulated historical replay adhering to the Honesty Framework (Sharpe Ratio, Win Rate, and Max Drawdown without deceptive raw accuracy)</div>
+          </div>
+        </div>
+
+        <div class="control-bar">
+          <!-- Asset search with dropdown — same UX as Signal Engine -->
+          <div class="backtest-search-wrap" style="position: relative;">
+            <input type="text" id="txt-backtestSymbol"
+              placeholder="Search asset (e.g. AAPL, BTC, NVDA…)"
+              style="width: 260px; text-transform: uppercase;"
+              autocomplete="off"
+              oninput="Backtest.onSymbolInput(this.value)"
+              onfocus="Backtest.onSymbolInput(this.value)">
+            <div id="dropdown-backtestSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+          </div>
+          <select id="cmb-backtestType">
+            <option value="stock">Stock / Traditional Equity</option>
+            <option value="crypto">Cryptocurrency</option>
+          </select>
+          <select id="cmb-backtestModel">
+            <option value="random_forest">Random Forest Baseline</option>
+            <option value="lstm">PyTorch Shallow LSTM</option>
+          </select>
+          <button id="btn-runBacktest" class="btn btn-primary" onclick="Backtest.run()">
+            Run Strategy Backtest
+          </button>
+        </div>
+
+        <!-- Backtest Loading State (identical to Signal Engine) -->
+        <div id="backtestLoadingArea" style="display: none; margin-top: 18px;"></div>
+
+        <!-- Backtest Results (Metrics + Cumulative Equity Curve) -->
+        <div id="backtestResultsArea">
+          <!-- Plain-English Summary Card (rendered by JS after backtest completes) -->
+          <div id="backtestSummaryCard" style="display: none; margin-top: 18px;"></div>
+
+          <div class="metrics-grid" style="margin-top: 18px;">
+            <div class="metric-tile">
+              <div class="metric-tile-label">Annualized Sharpe Ratio</div>
+              <div class="metric-data mono" id="stat-sharpeRatio">—</div>
+              <div class="metric-tile-sub">How much return you earned per unit of risk taken</div>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-label">Historical Win Rate</div>
+              <div class="metric-data mono" id="stat-winRate">—</div>
+              <div class="metric-tile-sub">Percentage of simulated trades that made money</div>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-label">Maximum Drawdown</div>
+              <div class="metric-data mono" id="stat-maxDrawdown">—</div>
+              <div class="metric-tile-sub">The worst drop from a peak — how much you could have lost</div>
+            </div>
+            <div class="metric-tile">
+              <div class="metric-tile-label">Executed Trade Samples</div>
+              <div class="metric-data mono" id="stat-totalTrades">—</div>
+              <div class="metric-tile-sub">Number of buy/sell decisions the AI made in the simulation</div>
+            </div>
+          </div>
+
+          <!-- Cumulative Equity Curve Canvas -->
+          <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.04em;">
+                Cumulative Equity Progression (Baseline = 1.00x)
+              </span>
+              <span id="lbl-chartHoverVal" class="mono" style="font-size: 12px; color: var(--text-muted);"></span>
+            </div>
+            <canvas id="tbl-equityCanvas" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: WATCHLIST & FEEDBACK LOOP -->
+    <section id="tab-watchlist" class="tab-workspace">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- Tracked Watchlist Assets Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                <span>Tracked Watchlist Assets</span>
+                <span id="watchPill-count" class="lot-badge">0 tracked</span>
+                <span id="watchPill-alerts" class="lot-badge" style="display: none; background: rgba(245,158,11,0.15); color: var(--fin-alert); border-color: rgba(245,158,11,0.3);">0 shifts</span>
+              </div>
+              <div class="card-desc">Monitors assets for unexpected model signal changes without holding an active position</div>
+            </div>
+          </div>
+
+          <div class="control-bar" style="align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+            <div class="watchlist-search-wrap" style="position: relative; flex: 1; min-width: 170px;">
+              <input type="text" id="txt-watchSymbol"
+                placeholder="Search asset (e.g. AAPL, BTC, NVDA…)"
+                style="width: 100%; text-transform: uppercase;"
+                autocomplete="off"
+                oninput="Watchlist.onSymbolInput(this.value)"
+                onfocus="Watchlist.onSymbolInput(this.value)">
+              <div id="dropdown-watchSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+            </div>
+            <select id="cmb-watchType" style="min-width: 110px;">
+              <option value="stock">Stock / Equity</option>
               <option value="crypto">Cryptocurrency</option>
             </select>
-            <button id="btn-genSignals" class="btn btn-primary" onclick="Signals.generate()">Compute Signals</button>
+            <button class="btn btn-primary btn-xs" onclick="Watchlist.add()">+ Track Asset</button>
+          </div>
+
+          <!-- Quick pick chips -->
+          <div class="quick-asset-pills">
+            <span>Quick Pick:</span>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('AAPL', 'stock')">AAPL</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('NVDA', 'stock')">NVDA</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('TSLA', 'stock')">TSLA</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('BTC', 'crypto')">BTC</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('ETH', 'crypto')">ETH</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Watchlist.selectAsset('SOL', 'crypto')">SOL</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Class</th>
+                  <th>Latest Signal</th>
+                  <th>Shift Alert</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-watchlist-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Watchlist is empty. Search or select an asset above to start tracking.</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Signature Element: Divergence Warning -->
-        <div id="divergenceAlert" class="divergence-alert">
-          <strong>⚠️ Model Divergence Detected:</strong>
-          <span id="divergenceMsg"></span>
-        </div>
-
-        <!-- Model Comparison Matrix -->
-        <div class="models-matrix" id="modelsMatrix">
-          <div class="matrix-cell" style="grid-column: 1 / -1; text-align: center; color: var(--text-dim); padding: 32px;">
-            Input a symbol above and click "Compute Signals" to run the dual-model inference pipeline.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- WORKSPACE 4: STRATEGY BACKTEST -->
-    <section id="tab-backtest" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Quantitative Backtester</h2>
-            <p class="panel-desc">Evaluates historical signals using the Honesty Framework (Sharpe, Drawdown, Win Rate)</p>
-          </div>
-          <div class="control-row">
-            <input type="text" id="txt-backtestSymbol" placeholder="Symbol" value="AAPL" style="width: 130px; text-transform: uppercase;">
-            <select id="cmb-backtestType">
-              <option value="stock">Equity</option>
-              <option value="crypto">Crypto</option>
-            </select>
-            <select id="cmb-backtestModel">
-              <option value="random_forest">Random Forest</option>
-              <option value="lstm">LSTM Neural Net</option>
-            </select>
-            <button id="btn-runBacktest" class="btn btn-primary" onclick="Backtest.run()">Run Backtest</button>
-          </div>
-        </div>
-
-        <div class="metrics-strip">
-          <div class="metric-cell">
-            <span class="metric-name">Sharpe Ratio</span>
-            <span class="metric-data mono" id="stat-sharpeRatio">—</span>
-            <span class="metric-meta">Risk-adjusted return vs benchmark</span>
-          </div>
-          <div class="metric-cell">
-            <span class="metric-name">Win Rate</span>
-            <span class="metric-data mono" id="stat-winRate">—</span>
-            <span class="metric-meta">Fraction of positive trades</span>
-          </div>
-          <div class="metric-cell">
-            <span class="metric-name">Max Drawdown</span>
-            <span class="metric-data mono val-neg" id="stat-maxDrawdown">—</span>
-            <span class="metric-meta">Peak-to-trough capital risk</span>
-          </div>
-          <div class="metric-cell">
-            <span class="metric-name">Total Trades</span>
-            <span class="metric-data mono" id="stat-totalTrades">—</span>
-            <span class="metric-meta">Simulated signal executions</span>
-          </div>
-        </div>
-
-        <div class="chart-frame">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 600;">Cumulative Equity Trajectory (Baseline = 1.0)</span>
-            <span class="mono" style="font-size: 11.5px; color: var(--fin-accent);" id="lbl-chartHoverVal">Hover cursor over curve</span>
-          </div>
-          <canvas id="tbl-equityCanvas"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- WORKSPACE 5: ASSET MONITOR -->
-    <section id="tab-watchlist" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Asset Monitor &amp; Shift Alerts</h2>
-            <p class="panel-desc">Tracks unheld instruments and flags direction flips across subsequent runs</p>
-          </div>
-          <div class="control-row">
-            <input type="text" id="txt-watchSymbol" placeholder="Symbol (e.g. TSLA)" style="width: 140px; text-transform: uppercase;">
-            <select id="cmb-watchType">
-              <option value="stock">Stock</option>
-              <option value="crypto">Crypto</option>
-            </select>
-            <button id="btn-addWatch" class="btn btn-primary" onclick="Watchlist.add()">Track Asset</button>
-          </div>
-        </div>
-
-        <div class="data-grid-wrap">
-          <table id="tbl-watchlist">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Asset Class</th>
-                <th>Latest Signal</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="tbl-watchlist-body">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Asset monitor is empty.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- WORKSPACE 6: FEEDBACK AUDIT -->
-    <section id="tab-history" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Continuous Feedback Audit</h2>
-            <p class="panel-desc">Historical evaluation of predictions against actual price outcomes (FR-6.2)</p>
-          </div>
-          <div class="control-row">
-            <input type="text" id="txt-historySymbol" placeholder="Symbol" value="AAPL" style="width: 140px; text-transform: uppercase;">
-            <button id="btn-loadAudit" class="btn btn-subtle" onclick="Audit.load()">Load Audit Log</button>
-          </div>
-        </div>
-
-        <div class="data-grid-wrap">
-          <table id="tbl-history">
-            <thead>
-              <tr>
-                <th>Generated</th>
-                <th>Model</th>
-                <th>Predicted</th>
-                <th>Realized</th>
-                <th>Verdict</th>
-              </tr>
-            </thead>
-            <tbody id="tbl-history-body">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Input a symbol to inspect historical signal audits.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- WORKSPACE 7: TERMINAL SETTINGS -->
-    <section id="tab-admin" class="tab-workspace">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-heading">
-            <h2 class="panel-title">Terminal Settings &amp; Health Diagnostics</h2>
-            <p class="panel-desc">Global tracked assets, retrain schedules, and price feed diagnostics (FR-7)</p>
-          </div>
-          <button id="btn-testFeeds" class="btn btn-subtle btn-xs" onclick="Admin.checkHealth()">Test Connectivity</button>
-        </div>
-
-        <div class="metrics-strip" style="margin-bottom: 16px;">
-          <div class="metric-cell">
-            <span class="metric-name">Batch Retrain Schedule</span>
-            <div class="control-row" style="margin-top: 6px;">
-              <input type="number" id="txt-retrainDays" min="1" max="30" value="7" style="width: 75px;">
-              <span style="font-size: 12px; color: var(--text-muted);">Days</span>
-              <button id="btn-saveConfig" class="btn btn-subtle btn-xs" onclick="Admin.saveConfig()">Save</button>
+        <!-- Feedback Loop Resolution Audit Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                <span>Feedback Loop: Outcome Audit</span>
+                <span id="auditPill-status" class="lot-badge">Continuous Learning</span>
+              </div>
+              <div class="card-desc">Reviews historical prediction accuracy against actual subsequent market trajectories</div>
             </div>
-            <span class="metric-meta">Configures automated retraining policy</span>
           </div>
 
-          <div class="metric-cell">
-            <span class="metric-name">Register Global Asset</span>
-            <div class="control-row" style="margin-top: 6px;">
-              <input type="text" id="txt-adminSymbol" placeholder="Symbol" style="width: 110px; text-transform: uppercase;">
+          <div class="control-bar" style="align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+            <div class="audit-search-wrap" style="position: relative; flex: 1; min-width: 170px;">
+              <input type="text" id="txt-historySymbol"
+                placeholder="Search audit asset (e.g. AAPL, BTC…)"
+                style="width: 100%; text-transform: uppercase;"
+                autocomplete="off"
+                oninput="Audit.onSymbolInput(this.value)"
+                onfocus="Audit.onSymbolInput(this.value)">
+              <div id="dropdown-auditSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+            </div>
+            <select id="cmb-auditModelFilter" onchange="Audit.filterChanged()" style="min-width: 120px;">
+              <option value="all">All Models</option>
+              <option value="random_forest">Random Forest</option>
+              <option value="lstm">PyTorch LSTM</option>
+            </select>
+            <button class="btn btn-primary btn-xs" id="btn-auditInspect" onclick="Audit.load()">Inspect History</button>
+          </div>
+
+          <!-- Dynamic quick audit chips from watchlist -->
+          <div id="auditQuickPills" class="quick-asset-pills">
+            <span>Quick Audit:</span>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Audit.loadFor('AAPL')">AAPL</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Audit.loadFor('BTC')">BTC</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Audit.loadFor('NVDA')">NVDA</button>
+            <button type="button" class="btn btn-subtle btn-xs" onclick="Audit.loadFor('SOL')">SOL</button>
+          </div>
+
+          <!-- Audit Loading Indicator -->
+          <div id="auditLoadingArea" style="display: none; padding: 24px; text-align: center;">
+            <div class="sig-spinner-ring" style="margin: 0 auto 12px; width: 36px; height: 36px;"></div>
+            <div style="font-size: 13px; color: var(--text-muted);">Auditing prediction outcomes against market ground truth…</div>
+          </div>
+
+          <!-- Plain-English Summary & Stat Grid (rendered by JS) -->
+          <div id="auditSummaryCard" style="display: none; margin-bottom: 16px;"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Model</th>
+                  <th>Predicted</th>
+                  <th>Actual Direction</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-history-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Search or select an asset above to review outcome history.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 5: ADMIN CONTROL DESK -->
+    <section id="tab-admin" class="tab-workspace">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">System Administration & Model Health</div>
+            <div class="card-desc">Manage retraining intervals, external data connectivity, and master tracked assets</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+          <!-- Retrain Interval Policy -->
+          <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); font-weight: 600; margin-bottom: 8px;">
+              Automated Retrain Schedule Policy
+            </div>
+            <div class="control-row">
+              <input type="number" id="txt-retrainDays" min="1" max="30" value="7" style="width: 80px;">
+              <span style="font-size: 13px; color: var(--text-muted);">Days</span>
+              <button id="btn-saveConfig" class="btn btn-subtle btn-xs" onclick="Admin.saveConfig()">Save Policy</button>
+              <button id="btn-retrainNow" class="btn btn-primary btn-xs" onclick="Admin.retrainNow()">⚡ Retrain Now</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
+              Governs the background daemon retrain frequency across master assets.
+            </div>
+          </div>
+
+          <!-- Register Master Asset -->
+          <div style="background: var(--bg-surface); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); font-weight: 600; margin-bottom: 8px;">
+              Register Master Tracked Asset
+            </div>
+            <div class="control-row">
+              <input type="text" id="txt-adminSymbol" placeholder="SYMBOL" style="width: 120px; text-transform: uppercase;">
               <select id="cmb-adminType">
                 <option value="stock">Stock</option>
                 <option value="crypto">Crypto</option>
               </select>
-              <button id="btn-addTracked" class="btn btn-primary btn-xs" onclick="Admin.addTracked()">Register</button>
+              <button class="btn btn-primary btn-xs" onclick="Admin.addTracked()">Register</button>
             </div>
-            <span class="metric-meta">Adds symbol to system health sweeps</span>
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
+              Enrolls symbol in automated health checks and scheduled model retraining.
+            </div>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Tracked Table -->
           <div>
-            <h3 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Tracked Registry</h3>
-            <div class="data-grid-wrap">
-              <table id="tbl-tracked">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 10px;">Master Tracked Registry</div>
+            <div class="table-wrap">
+              <table>
                 <thead><tr><th>Symbol</th><th>Class</th><th>Action</th></tr></thead>
                 <tbody id="tbl-tracked-body">
                   <tr><td colspan="3" style="text-align: center; color: var(--text-dim); padding: 16px;">Loading registry...</td></tr>
@@ -482,10 +531,14 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
             </div>
           </div>
 
+          <!-- Feed Health Diagnostic Box -->
           <div>
-            <h3 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Feed Connectivity Log</h3>
-            <div id="box-feedHealth" style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; min-height: 120px; color: var(--text-muted);">
-              Click "Test Connectivity" to ping external price feeds.
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">Data Feed Connectivity Log</span>
+              <button class="btn btn-subtle btn-xs" onclick="Admin.checkHealth()">Test Connectivity</button>
+            </div>
+            <div id="box-feedHealth" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; min-height: 140px; color: var(--text-muted); line-height: 1.6;">
+              Click "Test Connectivity" to ping external Yahoo Finance & Binance price feeds.
             </div>
           </div>
         </div>
@@ -494,77 +547,57 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
 
   </main>
 
-  <!-- MODAL: AUTHENTICATION -->
-  <div class="modal-backdrop" id="modal-auth">
-    <div class="modal-panel">
-      <div class="modal-bar">
-        <h3 style="font-size: 15px; font-weight: 700;" id="lbl-authTitle">Trader Access</h3>
-        <button class="modal-btn-close" onclick="closeModal('modal-auth')">&times;</button>
-      </div>
-
-      <div style="display: flex; gap: 6px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
-        <button id="btn-authTabLogin" class="btn btn-primary btn-xs" style="flex: 1;" onclick="Auth.setMode('login')">Sign In</button>
-        <button id="btn-authTabRegister" class="btn btn-subtle btn-xs" style="flex: 1;" onclick="Auth.setMode('register')">Register</button>
-      </div>
-
-      <div class="field-group">
-        <label>Email Address</label>
-        <input type="email" id="txt-authEmail" placeholder="trader@tradesage.ai" required>
-      </div>
-
-      <div class="field-group">
-        <label>Password</label>
-        <input type="password" id="txt-authPassword" placeholder="••••••••" required>
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-        <button class="btn btn-subtle" onclick="closeModal('modal-auth')">Cancel</button>
-        <button id="btn-authSubmit" class="btn btn-primary" onclick="Auth.submit()">Sign In</button>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL: ADD HOLDING -->
   <div class="modal-backdrop" id="modal-addHolding">
     <div class="modal-panel">
       <div class="modal-bar">
-        <h3 style="font-size: 15px; font-weight: 700;">Record Position</h3>
+        <h3 class="modal-title">Record Portfolio Position</h3>
         <button class="modal-btn-close" onclick="closeModal('modal-addHolding')">&times;</button>
       </div>
 
-      <div class="field-group">
-        <label>Symbol</label>
-        <input type="text" id="txt-holdSymbol" placeholder="e.g. AAPL or BTC" style="text-transform: uppercase;">
-      </div>
+      <form onsubmit="event.preventDefault(); Portfolio.submitAdd();">
+        <div class="field-group" style="position: relative;">
+          <label for="txt-holdSymbol">Asset Symbol / Name</label>
+          <input type="text" id="txt-holdSymbol" placeholder="Type a letter (e.g. A for AAPL, AMZN, AMD, ADA...)" style="text-transform: uppercase;" autocomplete="off" required oninput="Portfolio.onSymbolInput(this.value)">
+          <div id="dropdown-holdSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+        </div>
 
-      <div class="field-group">
-        <label>Asset Class</label>
-        <select id="cmb-holdType">
-          <option value="stock">Equity / Stock</option>
-          <option value="crypto">Cryptocurrency</option>
-        </select>
-      </div>
+        <!-- Live Spot Price Banner -->
+        <div id="box-holdSpotPrice" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); font-weight: 600;">Current Market Spot Price</div>
+            <div id="lbl-holdSpotPrice" class="mono" style="font-size: 15px; font-weight: 700; color: var(--fin-up);">$0.00</div>
+          </div>
+          <button type="button" class="btn btn-subtle btn-xs" onclick="Portfolio.useCurrentPrice()">Use As Purchase Price</button>
+        </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="field-group">
-          <label>Units / Quantity</label>
-          <input type="number" id="txt-holdQty" step="any" placeholder="10">
+          <label for="cmb-holdType">Asset Class</label>
+          <select id="cmb-holdType" onchange="Portfolio.fetchLivePriceForCurrentInput()">
+            <option value="stock">Stock / Equity</option>
+            <option value="crypto">Cryptocurrency</option>
+          </select>
         </div>
         <div class="field-group">
-          <label>Entry Price ($)</label>
-          <input type="number" id="txt-holdPrice" step="any" placeholder="150.00">
+          <label for="txt-holdQty">Quantity / Units</label>
+          <input type="number" id="txt-holdQty" step="any" min="0.00000001" placeholder="10.5" required>
         </div>
-      </div>
-
-      <div class="field-group">
-        <label>Trade Date</label>
-        <input type="date" id="txt-holdDate">
-      </div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-        <button class="btn btn-subtle" onclick="closeModal('modal-addHolding')">Cancel</button>
-        <button id="btn-saveHolding" class="btn btn-primary" onclick="Portfolio.submitAdd()">Record</button>
-      </div>
+        <div class="field-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label for="txt-holdPrice">Purchase Price (USD)</label>
+            <span id="hint-priceAutoSet" style="font-size: 11px; color: var(--text-dim); display: none;">Auto-filled from market</span>
+          </div>
+          <input type="number" id="txt-holdPrice" step="any" min="0.0001" placeholder="150.00" required>
+        </div>
+        <div class="field-group">
+          <label for="txt-holdDate">Execution Date</label>
+          <input type="date" id="txt-holdDate" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn btn-subtle" onclick="closeModal('modal-addHolding')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Record Position</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -572,34 +605,137 @@ Synopsis    : Institutional trading terminal HTML5 shell for TradeSage AI.
   <div class="modal-backdrop" id="modal-csv">
     <div class="modal-panel">
       <div class="modal-bar">
-        <h3 style="font-size: 15px; font-weight: 700;">CSV Position Import</h3>
+        <h3 class="modal-title">Batch Import Holdings</h3>
         <button class="modal-btn-close" onclick="closeModal('modal-csv')">&times;</button>
       </div>
-      <p style="font-size: 12px; color: var(--text-muted);">
-        Upload a CSV file containing columns: <code>assetSymbol</code>, <code>assetType</code>, <code>quantity</code>, <code>buyPrice</code>, and <code>buyDate</code> (YYYY-MM-DD).
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+        Upload a CSV file containing columns: <code>assetSymbol, assetType, quantity, buyPrice, buyDate</code>.
       </p>
       <div class="field-group">
-        <input type="file" id="file-csvUpload" accept=".csv">
+        <input type="file" id="file-csvUpload" accept=".csv" required>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-        <button class="btn btn-subtle" onclick="closeModal('modal-csv')">Cancel</button>
-        <button class="btn btn-primary" onclick="Portfolio.submitCsv()">Import</button>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+        <button type="button" class="btn btn-subtle" onclick="closeModal('modal-csv')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="Portfolio.submitCsv()">Upload & Process</button>
       </div>
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION CONTAINER -->
-  <div class="toast-stack" id="toastStack"></div>
+  <!-- MODAL: AUTHENTICATION (SECONDARY) -->
+  <div class="modal-backdrop" id="modal-auth">
+    <div class="modal-panel">
+      <div class="modal-bar">
+        <h3 class="modal-title" id="lbl-authTitle">Trader Access</h3>
+        <button class="modal-btn-close" onclick="closeModal('modal-auth')">&times;</button>
+      </div>
 
-  <!-- FOOTER -->
-  <footer class="terminal-footer">
-    <div>TradeSage AI · CE363 Project-III · CHARUSAT Standards Compliant</div>
-    <div style="color: var(--text-muted);">
-      ⚠️ <strong>Decision-Support Only</strong>: Signal outputs and backtest metrics do not constitute financial advice.
+      <div class="segmented-tabs" style="margin-bottom: 16px;">
+        <button id="btn-authTabLogin" class="tab-btn active" style="flex: 1;" onclick="Auth.setMode('login')">Sign In</button>
+        <button id="btn-authTabRegister" class="tab-btn" style="flex: 1;" onclick="Auth.setMode('register')">Register</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); Auth.submit();">
+        <div class="field-group">
+          <label for="txt-authEmail">Email Address</label>
+          <input type="email" id="txt-authEmail" placeholder="trader@tradesage.ai" required>
+        </div>
+        <div class="field-group">
+          <label for="txt-authPassword">Password</label>
+          <input type="password" id="txt-authPassword" placeholder="••••••••" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn btn-subtle" onclick="closeModal('modal-auth')">Cancel</button>
+          <button type="submit" id="btn-authSubmit" class="btn btn-primary">Authenticate</button>
+        </div>
+      </form>
     </div>
-  </footer>
+  </div>
 
-  <!-- SCRIPT -->
-  <script src="js/app.js" defer></script>
+  <!-- MODAL: POSITION DETAIL DRAWER -->
+  <div class="modal-backdrop" id="modal-posDetail">
+    <div class="modal-panel" style="max-width: 540px;">
+      <div class="modal-bar">
+        <h3 class="modal-title" id="lbl-posDetailTitle">Position Detail</h3>
+        <button class="modal-btn-close" onclick="closeModal('modal-posDetail')">&times;</button>
+      </div>
+
+      <!-- Symbol header strip -->
+      <div class="pos-detail-header">
+        <div class="pos-detail-symbol" id="pd-symbol">—</div>
+        <span class="tag" id="pd-typeTag">—</span>
+        <div class="pos-detail-dir" id="pd-pnlBadge">—</div>
+      </div>
+
+      <!-- 2×3 metric grid -->
+      <div class="pos-detail-grid">
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Units Held</div>
+          <div class="pos-detail-val mono" id="pd-units">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Avg Buy Price</div>
+          <div class="pos-detail-val mono" id="pd-buyPrice">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Current Spot</div>
+          <div class="pos-detail-val mono" id="pd-livePrice">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Cost Basis</div>
+          <div class="pos-detail-val mono" id="pd-costBasis">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Current Value</div>
+          <div class="pos-detail-val mono" id="pd-currentValue">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Unrealized P&amp;L ($)</div>
+          <div class="pos-detail-val mono" id="pd-pnlDollar">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Buy Date</div>
+          <div class="pos-detail-val mono" id="pd-buyDate">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Price Δ (Cost → Now)</div>
+          <div class="pos-detail-val mono" id="pd-priceChange">—</div>
+        </div>
+        <div class="pos-detail-cell">
+          <div class="pos-detail-label">Break-Even Price</div>
+          <div class="pos-detail-val mono" id="pd-breakEven">—</div>
+        </div>
+      </div>
+
+      <!-- Gain/loss magnitude bar -->
+      <div class="pos-gain-bar-wrap">
+        <div class="pos-gain-bar-labels">
+          <span>Loss</span>
+          <span id="pd-gainLabel">0.00%</span>
+          <span>Gain</span>
+        </div>
+        <div class="pos-gain-track">
+          <div class="pos-gain-fill" id="pd-gainFill" style="width:50%;"></div>
+          <div class="pos-gain-pivot"></div>
+        </div>
+      </div>
+
+      <!-- Action row -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-primary btn-xs" id="pd-btnSignal" onclick="">
+          ⚡ Analyse in Signal Engine
+        </button>
+        <button class="btn btn-danger-outline btn-xs" id="pd-btnRemove" onclick="">
+          Remove Position
+        </button>
+        <button class="btn btn-subtle btn-xs" onclick="closeModal('modal-posDetail')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Terminal Script Controller -->
+  <script src="js/app.js"></script>
 </body>
 </html>

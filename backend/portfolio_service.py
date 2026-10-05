@@ -34,7 +34,7 @@ Globals accessed/modified: None.
 
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, date
 
 from models import Holding
 
@@ -52,17 +52,40 @@ REQUIRED_CSV_COLUMNS = ["assetSymbol", "assetType", "quantity", "buyPrice", "buy
 
 
 def addHolding(dbSession, userId, assetSymbol, assetType, quantity, buyPrice, buyDate):
+    parsedDate = _coerceToDate(buyDate)
+    if parsedDate > date.today():
+        raise ValueError("Execution date cannot be in the future.")
+    qty = float(quantity)
+    if qty <= 0:
+        raise ValueError("Quantity must be greater than zero.")
+    price = float(buyPrice)
+    if price <= 0:
+        raise ValueError("Purchase price must be greater than zero.")
+
     newHolding = Holding(
         userId=userId,
         assetSymbol=assetSymbol.upper(),
         assetType=assetType,
-        quantity=float(quantity),
-        buyPrice=float(buyPrice),
-        buyDate=_coerceToDate(buyDate),
+        quantity=qty,
+        buyPrice=price,
+        buyDate=parsedDate,
     )
     dbSession.add(newHolding)
     dbSession.commit()
     return newHolding
+
+
+def removeHolding(dbSession, userId, holdingId):
+    holding = (
+        dbSession.query(Holding)
+        .filter_by(holdingId=holdingId, userId=userId)
+        .first()
+    )
+    if holding is None:
+        return False
+    dbSession.delete(holding)
+    dbSession.commit()
+    return True
 
 
 def importHoldingsFromCsv(dbSession, userId, csvFileObj):

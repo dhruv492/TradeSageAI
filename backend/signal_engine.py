@@ -27,7 +27,7 @@ Globals accessed/modified: None.
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
-NUM_ESTIMATORS_DEFAULT = 100  # ALL_CAPS constant per CHARUSAT standard
+NUM_ESTIMATORS_DEFAULT = 100  # ALL_CAPS constant per standard naming convention
 RANDOM_STATE_DEFAULT = 42
 
 

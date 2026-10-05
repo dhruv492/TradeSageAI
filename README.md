@@ -1,4 +1,4 @@
-# TradeSage AI — CE363 Project-III (CHARUSAT)
+# TradeSage AI
 
 Personal trading intelligence platform combining portfolio tracking with an
 ML-driven signal engine (RandomForest baseline + LSTM, compared side by
@@ -27,9 +27,8 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Then open `frontend/dashboard.html` in a browser. Full setup detail,
-known deviations from the CHARUSAT coding standard, and test instructions
-live in `backend/README.md`.
+Then open `frontend/dashboard.html` in a browser. Full setup detail
+and test instructions live in `backend/README.md`.
 
 ## Status
 

@@ -35,13 +35,16 @@ Functions:
 Globals accessed/modified: None (dbSession passed explicitly, not global).
 """
 
+import os
 from datetime import date
 
+import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import yfinance as yf
 
 from models import SentimentCache
 
-MIN_SAMPLE_SIZE_DEFAULT = 1  # ALL_CAPS constant per CHARUSAT standard
+MIN_SAMPLE_SIZE_DEFAULT = 1  # ALL_CAPS constant per standard naming convention
 
 
 def getFinanceLexicon():
@@ -69,15 +72,80 @@ def scoreText(text, vaderAnalyzer):
     return vaderAnalyzer.polarity_scores(text)["compound"]
 
 
+def _extractTitle(item):
+    if isinstance(item, dict):
+        content = item.get("content")
+        if isinstance(content, dict) and content.get("title"):
+            return content["title"]
+        return item.get("title", "")
+    return str(item)
+
+
 def _defaultHeadlineFetcher(assetSymbol, sourceDate):
-    # Real implementation calls NewsAPI in app.py's configured client;
-    # returning an empty list here is the safe no-op default so this
-    # module never silently makes a network call on its own.
+    """Fetches real headlines via NewsAPI if configured, or falls back to
+    yfinance news stream for the symbol. Returns empty list on network failure."""
+    newsApiKey = os.environ.get("NEWSAPI_KEY")
+    if newsApiKey:
+        try:
+            resp = requests.get(
+                "https://newsapi.org/v2/everything",
+                params={"q": assetSymbol, "pageSize": 10, "sortBy": "relevance", "apiKey": newsApiKey},
+                timeout=4,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                headlines = [a["title"] for a in data.get("articles", []) if a.get("title")]
+                if headlines:
+                    return headlines
+        except Exception:
+            pass
+
+    # Zero-config live news fallback via yfinance
+    try:
+        ticker = yf.Ticker(assetSymbol)
+        newsItems = ticker.news if hasattr(ticker, "news") and ticker.news else []
+        headlines = [_extractTitle(item) for item in newsItems[:10]]
+        headlines = [h.strip() for h in headlines if h and h.strip()]
+        if headlines:
+            return headlines
+    except Exception:
+        pass
+
     return []
 
 
 def _defaultPostFetcher(assetSymbol, sourceDate):
-    # Same reasoning as above, for PRAW/Reddit.
+    """Fetches crypto posts via Reddit/PRAW if configured, or falls back to
+    crypto news via yfinance or Reddit public JSON. Returns empty list on failure."""
+    clientId = os.environ.get("REDDIT_CLIENT_ID")
+    clientSecret = os.environ.get("REDDIT_CLIENT_SECRET")
+    if clientId and clientSecret:
+        try:
+            import praw
+            reddit = praw.Reddit(
+                client_id=clientId,
+                client_secret=clientSecret,
+                user_agent=os.environ.get("REDDIT_USER_AGENT", "tradesage-ai/1.0"),
+            )
+            subreddit = reddit.subreddit("CryptoCurrency")
+            posts = [s.title for s in subreddit.search(assetSymbol, limit=10, time_filter="week")]
+            if posts:
+                return posts
+        except Exception:
+            pass
+
+    # Fallback to yfinance ticker news (e.g. BTC-USD)
+    try:
+        yfSymbol = assetSymbol if assetSymbol.endswith("-USD") else f"{assetSymbol}-USD"
+        ticker = yf.Ticker(yfSymbol)
+        newsItems = ticker.news if hasattr(ticker, "news") and ticker.news else []
+        headlines = [_extractTitle(item) for item in newsItems[:10]]
+        headlines = [h.strip() for h in headlines if h and h.strip()]
+        if headlines:
+            return headlines
+    except Exception:
+        pass
+
     return []
 
 

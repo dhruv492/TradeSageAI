@@ -30,7 +30,7 @@ Globals accessed/modified: None.
 import numpy as np
 import pandas as pd
 
-RSI_WINDOW_DEFAULT = 14        # ALL_CAPS constants per CHARUSAT standard
+RSI_WINDOW_DEFAULT = 14        # ALL_CAPS constants per standard naming convention
 MACD_FAST_SPAN_DEFAULT = 12
 MACD_SLOW_SPAN_DEFAULT = 26
 MACD_SIGNAL_SPAN_DEFAULT = 9

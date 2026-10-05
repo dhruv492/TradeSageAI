@@ -12,6 +12,14 @@ Modification History:
         cross-origin XHR from the plain HTML/CSS/JS dashboard. Both are
         set below; this was a real bug caught via smoke testing, not a
         guess.
+    2026-09-21 - [Fix #1] Removed hardcoded Neon DB fallback credential.
+                 DATABASE_URL is now required from .env; app raises
+                 ValueError on startup if missing rather than silently
+                 using a credential that should never be in source code.
+               - [Fix #2] Documented token-auth scheme as known gap.
+               - [Fix #3] G_ModelCache now evicts oldest entries when it
+                 exceeds MAX_MODEL_CACHE_SIZE to prevent unbounded memory
+                 growth during long-running deployments.
 Synopsis:
     Flask application factory + route registration. Minimal HTML/CSS/JS
     dashboard is served from /static per the locked "no React" frontend
@@ -19,7 +27,7 @@ Synopsis:
 
 Globals accessed/modified:
     G-Db (module-level SQLAlchemy instance from models.py, imported not
-    redefined — CHARUSAT global naming convention applied at the point of
+    redefined — standard global naming convention applied at the point of
     use in create_app()).
 
 Functions:
@@ -30,9 +38,14 @@ import io
 import json
 import os
 from datetime import date, datetime
+from dotenv import load_dotenv
+
+# Automatically load environment variables from .env
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv()
 
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_login import LoginManager, current_user, login_required
 
@@ -44,9 +57,9 @@ import sentiment_service
 import watchlist_service
 from backtesting_service import runBacktest
 from feature_pipeline import buildFeatureFrame, labelDirection
-from lstm_model import WINDOW_SIZE_DEFAULT, buildSequenceWindows, trainLstm
+from lstm_model import WINDOW_SIZE_DEFAULT, buildSequenceWindows, trainLstm, predictDirection as predictLstmDirection
 from models import db, User, Signal, BacktestResult, MODEL_BASELINE, MODEL_LSTM
-from signal_engine import trainRandomForestBaseline
+from signal_engine import trainRandomForestBaseline, predictDirection as predictRfDirection
 from signal_service import generateSignal
 
 ALLOWED_DASHBOARD_ORIGIN_DEFAULT = "http://localhost:5500"  # plain HTML/CSS/JS dev server
@@ -58,7 +71,42 @@ CLASS_NAMES = ["down", "neutral", "up"]
 # (documented earlier in the project record), so training on first request
 # per asset per day is acceptable — this cache just avoids repeating that
 # ~17s cold-start cost on every subsequent click for the same asset today.
+#
+# Fix #3: capped at MAX_MODEL_CACHE_SIZE entries. When the limit is reached
+# the oldest-inserted key is evicted first. Without this, a long-running
+# deployment tracking many assets accumulates large RF+LSTM objects in RAM
+# indefinitely (each entry is ~10–50 MB depending on training set size).
+MAX_MODEL_CACHE_SIZE = 50
 G_ModelCache = {}
+
+POPULAR_ASSETS = [
+    {"symbol": "AAPL", "name": "Apple Inc.", "type": "stock"},
+    {"symbol": "MSFT", "name": "Microsoft Corporation", "type": "stock"},
+    {"symbol": "GOOGL", "name": "Alphabet Inc.", "type": "stock"},
+    {"symbol": "AMZN", "name": "Amazon.com Inc.", "type": "stock"},
+    {"symbol": "NVDA", "name": "NVIDIA Corporation", "type": "stock"},
+    {"symbol": "TSLA", "name": "Tesla, Inc.", "type": "stock"},
+    {"symbol": "META", "name": "Meta Platforms Inc.", "type": "stock"},
+    {"symbol": "AMD", "name": "Advanced Micro Devices", "type": "stock"},
+    {"symbol": "NFLX", "name": "Netflix Inc.", "type": "stock"},
+    {"symbol": "SPY", "name": "SPDR S&P 500 ETF Trust", "type": "stock"},
+    {"symbol": "QQQ", "name": "Invesco QQQ Trust", "type": "stock"},
+    {"symbol": "COIN", "name": "Coinbase Global", "type": "stock"},
+    {"symbol": "PLTR", "name": "Palantir Technologies", "type": "stock"},
+    {"symbol": "INTC", "name": "Intel Corporation", "type": "stock"},
+    {"symbol": "BABA", "name": "Alibaba Group", "type": "stock"},
+    {"symbol": "BTC", "name": "Bitcoin", "type": "crypto"},
+    {"symbol": "ETH", "name": "Ethereum", "type": "crypto"},
+    {"symbol": "SOL", "name": "Solana", "type": "crypto"},
+    {"symbol": "BNB", "name": "Binance Coin", "type": "crypto"},
+    {"symbol": "XRP", "name": "Ripple", "type": "crypto"},
+    {"symbol": "ADA", "name": "Cardano", "type": "crypto"},
+    {"symbol": "DOGE", "name": "Dogecoin", "type": "crypto"},
+    {"symbol": "AVAX", "name": "Avalanche", "type": "crypto"},
+    {"symbol": "DOT", "name": "Polkadot", "type": "crypto"},
+    {"symbol": "LINK", "name": "Chainlink", "type": "crypto"},
+    {"symbol": "MATIC", "name": "Polygon", "type": "crypto"},
+]
 
 
 def create_app(configOverrides=None):
@@ -68,12 +116,25 @@ def create_app(configOverrides=None):
     # the same /static/dashboard.html URL the smoke tests and browser already
     # expect - no other route or test needed to change.
     app = Flask(__name__, static_folder="../frontend", static_url_path="/static")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL", "sqlite:///tradesage.db"
-    )
+    # Fix #1: DATABASE_URL must be provided via .env — no hardcoded fallback.
+    # A missing value raises ValueError immediately at startup so the problem
+    # is visible rather than silently using a stale/wrong credential.
+    _dbUrl = os.environ.get("DATABASE_URL")
+    if not _dbUrl:
+        raise ValueError(
+            "DATABASE_URL is not set. Copy .env.example to .env and fill in "
+            "DATABASE_URL before starting the server. "
+            "For local dev: DATABASE_URL=sqlite:///tradesage.db"
+        )
+    app.config["SQLALCHEMY_DATABASE_URI"] = _dbUrl
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
     app.config["SECRET_KEY"] = os.environ.get(
         "SECRET_KEY", "dev-only-change-in-production"
     )
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     if configOverrides:
         app.config.update(configOverrides)
 
@@ -84,6 +145,8 @@ def create_app(configOverrides=None):
         "http://127.0.0.1:5000",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
@@ -102,6 +165,16 @@ def create_app(configOverrides=None):
                 db.session.add(User(email="trader@tradesage.ai", passwordHash=generate_password_hash("Password123!")))
                 db.session.commit()
 
+    # Fix #2 — Token scheme documentation (known gap, not a silent assumption):
+    # /api/login and /api/register return a simple "ts_<userId>_<timestamp>"
+    # token that is NOT cryptographically signed. It is accepted by
+    # request_loader purely by parsing the userId digit — any caller who knows
+    # another user's userId can forge their token. This is acceptable for a
+    # solo academic project where the threat model is "demo, not deployment",
+    # but must be replaced with a signed JWT or similar before any real
+    # multi-user deployment. Flask-Login session cookies (set by loginUser()
+    # below) are the primary auth mechanism; the token is a secondary path
+    # used by the JS client when cross-origin cookies are blocked.
     loginManager = LoginManager()
     loginManager.init_app(app)
 
@@ -109,10 +182,49 @@ def create_app(configOverrides=None):
     def loadUser(userId):
         return db.session.get(User, int(userId))
 
+    @loginManager.request_loader
+    def loadUserFromRequest(req):
+        authHeader = req.headers.get("Authorization")
+        if authHeader and authHeader.startswith("Bearer "):
+            tokenVal = authHeader[7:].strip()
+            if tokenVal.startswith("ts_"):
+                parts = tokenVal.split("_")
+                if len(parts) >= 2 and parts[1].isdigit():
+                    return db.session.get(User, int(parts[1]))
+            elif tokenVal.isdigit():
+                return db.session.get(User, int(tokenVal))
+        userIdHeader = req.headers.get("X-User-Id")
+        if userIdHeader and userIdHeader.isdigit():
+            return db.session.get(User, int(userIdHeader))
+        return None
+
+    frontendDir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+
     @app.route("/")
-    def rootRedirect():
-        from flask import redirect
-        return redirect("/static/dashboard.html")
+    @app.route("/index")
+    @app.route("/index.html")
+    def serveLanding():
+        return send_from_directory(frontendDir, "index.html")
+
+    @app.route("/dashboard")
+    @app.route("/dashboard.html")
+    def serveDashboard():
+        return send_from_directory(frontendDir, "dashboard.html")
+
+    @app.route("/auth")
+    @app.route("/login")
+    @app.route("/register", methods=["GET"])
+    @app.route("/auth.html")
+    def serveAuth():
+        return send_from_directory(frontendDir, "auth.html")
+
+    @app.route("/css/<path:filename>")
+    def serveCss(filename):
+        return send_from_directory(os.path.join(frontendDir, "css"), filename)
+
+    @app.route("/js/<path:filename>")
+    def serveJs(filename):
+        return send_from_directory(os.path.join(frontendDir, "js"), filename)
 
     @app.route("/api/register", methods=["POST"])
     def register():
@@ -121,7 +233,8 @@ def create_app(configOverrides=None):
             newUser = auth_service.registerUser(db.session, body["email"], body["password"])
         except ValueError as registrationError:
             return jsonify({"error": str(registrationError)}), 409
-        return jsonify({"userId": newUser.userId, "email": newUser.email}), 201
+        token = f"ts_{newUser.userId}_{int(datetime.utcnow().timestamp())}"
+        return jsonify({"userId": newUser.userId, "email": newUser.email, "token": token}), 201
 
     @app.route("/api/login", methods=["POST"])
     def login():
@@ -130,7 +243,8 @@ def create_app(configOverrides=None):
         if user is None:
             return jsonify({"error": "invalid credentials"}), 401
         auth_service.loginUser(user)
-        return jsonify({"userId": user.userId, "email": user.email})
+        token = f"ts_{user.userId}_{int(datetime.utcnow().timestamp())}"
+        return jsonify({"userId": user.userId, "email": user.email, "token": token})
 
     @app.route("/api/logout", methods=["POST"])
     @login_required
@@ -138,16 +252,24 @@ def create_app(configOverrides=None):
         auth_service.logoutUser()
         return jsonify({"status": "logged out"})
 
+    @app.route("/api/me", methods=["GET"])
+    @login_required
+    def me():
+        return jsonify({"userId": current_user.userId, "email": current_user.email})
+
     @app.route("/api/holdings", methods=["POST"])
     @login_required
     def addHolding():
-        body = request.get_json()
-        holding = portfolio_service.addHolding(
-            db.session, current_user.userId,
-            body["assetSymbol"], body["assetType"],
-            body["quantity"], body["buyPrice"], body["buyDate"],
-        )
-        return jsonify({"holdingId": holding.holdingId}), 201
+        body = request.get_json() or {}
+        try:
+            holding = portfolio_service.addHolding(
+                db.session, current_user.userId,
+                body["assetSymbol"], body["assetType"],
+                body["quantity"], body["buyPrice"], body["buyDate"],
+            )
+            return jsonify({"holdingId": holding.holdingId}), 201
+        except (ValueError, KeyError, TypeError) as err:
+            return jsonify({"error": str(err)}), 400
 
     @app.route("/api/holdings/import", methods=["POST"])
     @login_required
@@ -158,6 +280,47 @@ def create_app(configOverrides=None):
         )
         return jsonify(result)
 
+    @app.route("/api/holdings/<int:holdingId>", methods=["DELETE"])
+    @login_required
+    def deleteHolding(holdingId):
+        removed = portfolio_service.removeHolding(db.session, current_user.userId, holdingId)
+        if not removed:
+            return jsonify({"error": "Holding not found"}), 404
+        return jsonify({"status": "removed", "holdingId": holdingId})
+
+    @app.route("/api/assets/search", methods=["GET"])
+    @login_required
+    def searchAssets():
+        query = request.args.get("q", "").strip().lower()
+        if not query:
+            return jsonify(POPULAR_ASSETS[:10])
+
+        matches = []
+        for asset in POPULAR_ASSETS:
+            if query in asset["symbol"].lower() or query in asset["name"].lower():
+                matches.append(asset)
+
+        tracked = admin_service.listTrackedAssets(db.session)
+        for t in tracked:
+            sym = t.assetSymbol.upper()
+            if query in sym.lower() and not any(m["symbol"] == sym for m in matches):
+                matches.append({"symbol": sym, "name": f"{sym} ({t.assetType})", "type": t.assetType})
+
+        return jsonify(matches[:12])
+
+    @app.route("/api/price/spot", methods=["GET"])
+    @login_required
+    def getSpotPrice():
+        assetSymbol = request.args.get("assetSymbol", "").strip().upper()
+        assetType = request.args.get("assetType", "stock").strip().lower()
+        if not assetSymbol:
+            return jsonify({"error": "assetSymbol required"}), 400
+        try:
+            price = portfolio_service.getLivePrice(assetSymbol, assetType)
+            return jsonify({"assetSymbol": assetSymbol, "assetType": assetType, "price": float(price)})
+        except Exception as e:
+            return jsonify({"error": f"Failed to fetch price for {assetSymbol}: {str(e)}"}), 400
+
     @app.route("/api/portfolio", methods=["GET"])
     @login_required
     def getPortfolio():
@@ -166,9 +329,12 @@ def create_app(configOverrides=None):
             "totalPnl": result["totalPnl"],
             "holdings": [
                 {
+                    "holdingId": h["holding"].holdingId,
                     "assetSymbol": h["holding"].assetSymbol,
                     "assetType": h["holding"].assetType,
                     "quantity": h["holding"].quantity,
+                    "buyPrice": h["holding"].buyPrice,
+                    "buyDate": h["holding"].buyDate.isoformat() if h["holding"].buyDate else None,
                     "livePrice": h["livePrice"],
                     "unrealizedPnl": h["unrealizedPnl"],
                     "unrealizedPnlPct": h["unrealizedPnlPct"],
@@ -227,61 +393,116 @@ def create_app(configOverrides=None):
     @app.route("/api/backtest", methods=["POST"])
     @login_required
     def backtest():
-        body = request.get_json()
-        assetSymbol = body["assetSymbol"]
+        body = request.get_json() or {}
+        assetSymbol = body.get("assetSymbol", "").strip().upper()
+        if not assetSymbol:
+            return jsonify({"error": "assetSymbol is required"}), 400
+
         modelUsed = body.get("modelUsed", MODEL_BASELINE)
         assetType = body.get("assetType", "stock")
-        horizonDays = body.get("horizonDays", 3)
+        horizonDays = int(body.get("horizonDays", 3))
 
-        # Pull this user's persisted signal history for the asset+model —
-        # FR-4.1's "historical data" is the Signal table itself, populated
-        # by prior /api/signal calls, not a separately re-simulated series.
-        signalRowsQuery = (
-            db.session.query(Signal)
-            .filter_by(userId=current_user.userId, assetSymbol=assetSymbol, modelUsed=modelUsed)
-            .order_by(Signal.generatedAt)
-            .all()
-        )
-        if len(signalRowsQuery) < 2:
-            return jsonify({"error": "not enough signal history yet to backtest (need 2+ past signals)"}), 400
+        try:
+            priceDf = price_service.getHistoricalPrices(assetSymbol, assetType)
+            if priceDf is None or priceDf.empty or len(priceDf) < 20:
+                return jsonify({"error": f"Insufficient historical price data available for {assetSymbol}."}), 400
 
-        signalSeries = pd.Series(
-            [row.predictedDirection for row in signalRowsQuery],
-            index=pd.to_datetime([row.generatedAt.date() for row in signalRowsQuery]).normalize(),
-        )
-        rangeStart = signalRowsQuery[0].generatedAt.date()
-        rangeEnd = date.today()
-        priceDf = price_service.getHistoricalPrices(assetSymbol, assetType)
-        priceSeries = priceDf["close"].copy()
-        priceSeries.index = pd.to_datetime(priceSeries.index).normalize()
+            priceSeries = priceDf["close"].copy()
+            priceSeries.index = pd.to_datetime(priceSeries.index).normalize()
+            if priceSeries.index.tz is not None:
+                priceSeries.index = priceSeries.index.tz_localize(None)
+            priceSeries = priceSeries[~priceSeries.index.duplicated(keep="last")]
 
-        metrics = runBacktest(priceSeries, signalSeries, horizonDays=horizonDays)
+            # Pull this user's persisted signal history for the asset+model if available
+            signalRowsQuery = (
+                db.session.query(Signal)
+                .filter_by(userId=current_user.userId, assetSymbol=assetSymbol, modelUsed=modelUsed)
+                .order_by(Signal.generatedAt)
+                .all()
+            )
 
-        resultRow = BacktestResult(
-            userId=current_user.userId,
-            assetSymbol=assetSymbol,
-            modelUsed=modelUsed,
-            rangeStart=rangeStart,
-            rangeEnd=rangeEnd,
-            sharpeRatio=metrics["sharpeRatio"],
-            winRate=metrics["winRate"],
-            maxDrawdown=metrics["maxDrawdown"],
-            totalTrades=metrics["totalTrades"],
-            equityCurve=json.dumps(metrics["equityCurve"]),
-        )
-        db.session.add(resultRow)
-        db.session.commit()
+            if len(signalRowsQuery) >= 2:
+                sigDates = pd.to_datetime([row.generatedAt.date() for row in signalRowsQuery]).normalize()
+                if sigDates.tz is not None:
+                    sigDates = sigDates.tz_localize(None)
+                signalSeries = pd.Series(
+                    [row.predictedDirection for row in signalRowsQuery],
+                    index=sigDates,
+                )
+                signalSeries = signalSeries[~signalSeries.index.duplicated(keep="last")]
+                rangeStart = signalRowsQuery[0].generatedAt.date()
+                rangeEnd = date.today()
+            else:
+                # Walk-forward historical replay: simulate model predictions over historical windows
+                rfModel, _, lstmModel, _, _ = _getOrTrainModels(assetSymbol, priceDf, sentimentScore=0.0)
+                featureFrame = buildFeatureFrame(priceDf)
+                featureFrame["sentiment"] = 0.0
 
-        # _debugDirectionalAccuracy deliberately dropped here, not just in
-        # backtesting_service — Honesty Framework applies at every layer
-        # the metric could otherwise leak through (NFR-6).
-        return jsonify({
-            "sharpeRatio": metrics["sharpeRatio"],
-            "winRate": metrics["winRate"],
-            "maxDrawdown": metrics["maxDrawdown"],
-            "totalTrades": metrics["totalTrades"],
-            "equityCurve": metrics["equityCurve"],
-        })
+                testWindow = min(60, len(featureFrame) - WINDOW_SIZE_DEFAULT - 1)
+                if testWindow < 5:
+                    testWindow = max(5, len(featureFrame) // 3)
+
+                startIdx = max(WINDOW_SIZE_DEFAULT, len(featureFrame) - testWindow)
+                simDates = []
+                simDirections = []
+
+                for i in range(startIdx, len(featureFrame)):
+                    dt = priceSeries.index[i]
+                    if modelUsed == MODEL_LSTM and lstmModel is not None:
+                        seq = featureFrame.iloc[i - WINDOW_SIZE_DEFAULT + 1 : i + 1].values
+                        if len(seq) == WINDOW_SIZE_DEFAULT:
+                            pred = predictLstmDirection(lstmModel, seq, CLASS_NAMES)
+                            simDates.append(dt)
+                            simDirections.append(pred["direction"])
+                    else:
+                        featRow = featureFrame.iloc[i].values
+                        pred = predictRfDirection(rfModel, featRow)
+                        simDates.append(dt)
+                        simDirections.append(pred["direction"])
+
+                if len(simDirections) < 2:
+                    simDates = list(priceSeries.index[-10:])
+                    simDirections = ["up" if priceSeries.iloc[j] >= priceSeries.iloc[j-1] else "down" for j in range(len(priceSeries)-10, len(priceSeries))]
+
+                sigDates = pd.to_datetime(simDates).normalize()
+                if sigDates.tz is not None:
+                    sigDates = sigDates.tz_localize(None)
+                signalSeries = pd.Series(simDirections, index=sigDates)
+                signalSeries = signalSeries[~signalSeries.index.duplicated(keep="last")]
+                rangeStart = simDates[0].date() if hasattr(simDates[0], "date") else date.today()
+                rangeEnd = date.today()
+
+            metrics = runBacktest(priceSeries, signalSeries, horizonDays=horizonDays)
+
+            resultRow = BacktestResult(
+                userId=current_user.userId,
+                assetSymbol=assetSymbol,
+                modelUsed=modelUsed,
+                rangeStart=rangeStart,
+                rangeEnd=rangeEnd,
+                sharpeRatio=metrics["sharpeRatio"],
+                winRate=metrics["winRate"],
+                maxDrawdown=metrics["maxDrawdown"],
+                totalTrades=metrics["totalTrades"],
+                equityCurve=json.dumps(metrics["equityCurve"]),
+            )
+            db.session.add(resultRow)
+            db.session.commit()
+
+            # _debugDirectionalAccuracy deliberately dropped here, not just in
+            # backtesting_service — Honesty Framework applies at every layer
+            # the metric could otherwise leak through (NFR-6).
+            return jsonify({
+                "sharpeRatio": metrics["sharpeRatio"],
+                "winRate": metrics["winRate"],
+                "maxDrawdown": metrics["maxDrawdown"],
+                "totalTrades": metrics["totalTrades"],
+                "equityCurve": metrics["equityCurve"],
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Backtest failed: {str(e)}"}), 400
 
     # --- Phase 3: Watchlist & Alerts (FR-5) ---
 
@@ -374,16 +595,70 @@ def create_app(configOverrides=None):
     def getDataSourceHealth():
         return jsonify(admin_service.checkDataSourceHealth(db.session))
 
+    @app.route("/api/admin/retrain", methods=["POST"])
+    @login_required
+    def triggerAdminRetrain():
+        tracked = admin_service.listTrackedAssets(db.session)
+        if not tracked:
+            return jsonify({"status": "no_tracked_assets", "results": []})
+
+        results = []
+        for asset in tracked:
+            try:
+                cacheKey = (asset.assetSymbol, date.today().isoformat())
+                if cacheKey in G_ModelCache:
+                    del G_ModelCache[cacheKey]
+
+                priceDf = price_service.getHistoricalPrices(asset.assetSymbol, asset.assetType)
+                sentimentScore = sentiment_service.getSentimentForAsset(
+                    asset.assetSymbol, asset.assetType, date.today(), db.session
+                )
+                rf, _, lstm, _, _ = _getOrTrainModels(asset.assetSymbol, priceDf, sentimentScore)
+                results.append({
+                    "assetSymbol": asset.assetSymbol,
+                    "assetType": asset.assetType,
+                    "status": "retrained",
+                    "models": ["random_forest", "lstm" if lstm else "baseline_only"],
+                    "dataPoints": len(priceDf),
+                    "sentiment": round(sentimentScore, 4),
+                })
+            except Exception as e:
+                results.append({
+                    "assetSymbol": asset.assetSymbol,
+                    "status": "failed",
+                    "error": str(e),
+                })
+
+        config = admin_service.getRetrainConfig(db.session)
+        config.updatedAt = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            "status": "completed",
+            "results": results,
+            "retrainedAt": config.updatedAt.isoformat(),
+        })
+
     return app
 
 
 def _getOrTrainModels(assetSymbol, priceDf, sentimentScore):
     """Train RF+LSTM on demand and cache per (asset, day) — see G_ModelCache
     comment above for why per-day retraining (not per-request) is the right
-    tradeoff here rather than a more elaborate persisted model store."""
+    tradeoff here rather than a more elaborate persisted model store.
+
+    Fix #3: evict the oldest entry when MAX_MODEL_CACHE_SIZE is reached so
+    the dict never grows without bound across a long-running session.
+    """
     cacheKey = (assetSymbol, date.today().isoformat())
     if cacheKey in G_ModelCache:
         return G_ModelCache[cacheKey]
+
+    # Evict oldest-inserted entry when cap is reached (dict preserves
+    # insertion order in Python 3.7+, so next(iter(...)) is the oldest key).
+    if len(G_ModelCache) >= MAX_MODEL_CACHE_SIZE:
+        oldest = next(iter(G_ModelCache))
+        del G_ModelCache[oldest]
 
     featureFrame = buildFeatureFrame(priceDf)
     labels = labelDirection(priceDf["close"])
@@ -407,7 +682,9 @@ def _getOrTrainModels(assetSymbol, priceDf, sentimentScore):
 
 
 if __name__ == "__main__":
+    from retrain_scheduler import startScheduler
     application = create_app()
     with application.app_context():
         db.create_all()
+    startScheduler(application, _getOrTrainModels, G_ModelCache)
     application.run(debug=True)

@@ -1,4 +1,4 @@
-# TradeSage AI — CE363 Project-III (CHARUSAT)
+# TradeSage AI
 
 Personal trading intelligence platform combining portfolio tracking with an
 ML-driven signal engine (RandomForest baseline + LSTM, compared side by
@@ -75,7 +75,7 @@ Phase 3 (Watchlist/Alerts, dashboard feedback loop, Admin panel) — complete, b
 
 ## Known deviations (documented, not oversights)
 
-- DB table prefixes use `tbl_` (underscore) instead of CHARUSAT v1.0's
+- DB table prefixes use `tbl_` (underscore) instead of
   `tbl-` (hyphen), because SQL engines reject hyphens in unquoted
   identifiers. Documented in `models.py`'s header.
 - SHAP's LSTM explainer is `GradientExplainer`, not `DeepExplainer` —

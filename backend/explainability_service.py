@@ -71,7 +71,7 @@ except ImportError:
 
 from models import MODEL_BASELINE, MODEL_LSTM
 
-DEFAULT_TOP_N = 5  # ALL_CAPS constant per CHARUSAT standard
+DEFAULT_TOP_N = 5  # ALL_CAPS constant per standard naming convention
 
 
 def explainRandomForest(model, backgroundData, instanceRow, featureNames,

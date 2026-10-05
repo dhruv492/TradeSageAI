@@ -42,7 +42,11 @@ def getHistoricalPrices(assetSymbol, assetType, lookbackDays=LOOKBACK_DAYS_DEFAU
     priceDf = fetcher(assetSymbol, lookbackDays)
     # Guard against fetchers returning extra columns (e.g. yfinance's Open/High/Low/
     # Adj Close/Dividends/Splits) — downstream code only expects close + volume.
-    return priceDf[["close", "volume"]].sort_index()
+    priceDf = priceDf[["close", "volume"]].sort_index()
+    if priceDf.index.tz is not None:
+        priceDf.index = priceDf.index.tz_localize(None)
+    priceDf = priceDf[~priceDf.index.duplicated(keep="last")]
+    return priceDf
 
 
 # --- default fetchers (real network clients; not used in unit tests) ---
@@ -51,6 +55,8 @@ def _defaultStockHistoryFetcher(assetSymbol, lookbackDays):
     import yfinance as yf
     ticker = yf.Ticker(assetSymbol)
     history = ticker.history(period=f"{lookbackDays}d")
+    if history.empty:
+        history = ticker.history(period="1y")
     return pd.DataFrame({
         "close": history["Close"],
         "volume": history["Volume"],
@@ -59,14 +65,17 @@ def _defaultStockHistoryFetcher(assetSymbol, lookbackDays):
 
 def _defaultCryptoHistoryFetcher(assetSymbol, lookbackDays):
     import requests
+    sym = assetSymbol.upper()
+    if not sym.endswith("USDT"):
+        sym = f"{sym}USDT"
     response = requests.get(
         "https://api.binance.com/api/v3/klines",
         params={
-            "symbol": f"{assetSymbol.upper()}USDT",
+            "symbol": sym,
             "interval": "1d",
             "limit": lookbackDays,
         },
-        timeout=5,
+        timeout=8,
     )
     response.raise_for_status()
     klines = response.json()

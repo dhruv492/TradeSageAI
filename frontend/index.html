@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeSage AI — Natural Financial Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Refined Landing Architecture Styles */
+    .landing-nav {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      backdrop-filter: blur(10px);
+    }
+    .landing-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+    .landing-nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+    .landing-nav-links a:hover {
+      color: var(--text-main);
+    }
+    .landing-hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 64px 28px 40px;
+      text-align: center;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+    }
+    .hero-title {
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-main);
+      max-width: 900px;
+      margin: 0 auto 20px;
+    }
+    .hero-title span {
+      color: var(--fin-up);
+    }
+    .hero-subtitle {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 34px;
+      line-height: 1.65;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Refined Credentials Banner */
+    .credentials-banner {
+      max-width: 860px;
+      margin: 40px auto 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-active);
+      border-radius: var(--radius-md);
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      gap: 20px;
+      box-shadow: var(--shadow-md);
+      flex-wrap: wrap;
+    }
+    .cred-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cred-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .cred-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 4px 10px;
+    }
+    .cred-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fin-up);
+    }
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: color var(--transition);
+    }
+    .copy-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* Sandbox Interactive Preview */
+    .sandbox-section {
+      max-width: 1100px;
+      margin: 48px auto;
+      padding: 0 28px;
+    }
+    .sandbox-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-lg);
+    }
+    .sandbox-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .ticker-pills {
+      display: flex;
+      gap: 8px;
+    }
+    .ticker-pill-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .ticker-pill-btn.active, .ticker-pill-btn:hover {
+      background: var(--fin-accent);
+      color: #ffffff;
+      border-color: var(--fin-accent);
+    }
+
+    /* End-to-End Pipeline Strip */
+    .pipeline-section {
+      max-width: 1200px;
+      margin: 64px auto;
+      padding: 0 28px;
+    }
+    .pipeline-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 28px;
+      position: relative;
+    }
+    .pipeline-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .step-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fin-accent);
+      font-weight: 700;
+    }
+    .step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Comparison Table Section */
+    .table-section {
+      max-width: 1100px;
+      margin: 64px auto;
+      padding: 0 28px;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      max-width: 900px;
+      margin: 64px auto 32px;
+      padding: 0 28px;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .faq-q {
+      padding: 18px 22px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .faq-q:hover {
+      background: var(--bg-card-hover);
+    }
+    .faq-a {
+      padding: 0 22px 18px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      display: none;
+    }
+    .faq-item.open .faq-a {
+      display: block;
+    }
+    .faq-icon {
+      font-size: 18px;
+      color: var(--text-dim);
+      transition: transform var(--transition);
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+    }
+
+    .features-section {
+      max-width: 1200px;
+      margin: 48px auto;
+      padding: 0 28px;
+    }
+    .section-eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--fin-accent);
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .section-heading {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color var(--transition);
+    }
+    .feature-card:hover {
+      border-color: var(--border-active);
+    }
+    .feature-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--fin-accent-bg);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--fin-accent);
+      margin-bottom: 4px;
+    }
+    .feature-icon-box svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+    .feature-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .feature-body {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .arch-strip {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 48px 28px;
+      margin: 64px 0 32px;
+    }
+    .arch-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .arch-stat-box {
+      text-align: center;
+      padding: 16px;
+    }
+    .arch-stat-num {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .arch-stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 36px 20px 48px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="landing-nav">
+    <div class="desk-identity">
+      <div class="desk-logo">
+        <div class="desk-logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>
+        </div>
+        <span>TradeSage AI</span>
+      </div>
+      <span class="desk-badge">INTELLIGENCE TERMINAL</span>
+    </div>
+
+    <div class="landing-nav-links">
+      <a href="#section-pipeline">Pipeline</a>
+      <a href="#section-sandbox">Live Sandbox</a>
+      <a href="#section-features">Modules</a>
+      <a href="#section-honesty">Honesty Framework</a>
+      <a href="#section-faq">FAQ</a>
+    </div>
+
+    <div class="session-controls">
+      <button id="btn-themeToggle" class="theme-toggle-btn" onclick="Theme.toggle()" title="Toggle Theme">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <a href="auth.html?mode=login" class="btn btn-subtle btn-xs" style="text-decoration: none;">Sign In</a>
+      <a href="auth.html?mode=register" class="btn btn-primary btn-xs" style="text-decoration: none;">Create Account</a>
+    </div>
+  </nav>
+
+  <!-- Live Market Ribbon -->
+  <div class="market-ribbon">
+    <div class="ribbon-item"><span class="sym">BTC/USD</span> <span class="val">$86,600.68</span> <span class="val-pos">▲ +3.42%</span></div>
+    <div class="ribbon-item"><span class="sym">NVDA</span> <span class="val">$128.85</span> <span class="val-pos">▲ +2.78%</span></div>
+    <div class="ribbon-item"><span class="sym">AAPL</span> <span class="val">$341.42</span> <span class="val-pos">▲ +1.15%</span></div>
+    <div class="ribbon-item"><span class="sym">ETH/USD</span> <span class="val">$3,518.40</span> <span class="val-pos">▲ +2.04%</span></div>
+    <div class="ribbon-item"><span class="sym">MSFT</span> <span class="val">$448.10</span> <span class="val-neg">▼ -0.38%</span></div>
+    <div class="ribbon-item"><span class="sym">SPY</span> <span class="val">$564.30</span> <span class="val-pos">▲ +0.64%</span></div>
+  </div>
+
+  <!-- Hero Section -->
+  <header class="landing-hero">
+    <div class="hero-pill">
+      <span class="status-led led-pulse"></span>
+      <span>PostgreSQL Live Cloud Connected • Dual ML Engine Active</span>
+    </div>
+    
+    <h1 class="hero-title">
+      Institutional Trading Intelligence Powered by <span>Dual Machine Learning</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      A transparent decision-support platform pairing Scikit-Learn Random Forest and shallow PyTorch LSTM models with SHAP factor explainability and walk-forward honesty backtesting.
+    </p>
+
+    <div class="hero-actions">
+      <a href="auth.html?mode=register" class="btn btn-primary" style="padding: 12px 26px; font-size: 14.5px; text-decoration: none;">
+        <span>Create Account →</span>
+      </a>
+      <a href="auth.html?mode=login" class="btn btn-subtle" style="padding: 12px 26px; font-size: 14.5px; text-decoration: none;">
+        Sign In
+      </a>
+    </div>
+  </header>
+
+  <!-- Interactive Sandbox Live Preview -->
+  <section class="sandbox-section" id="section-sandbox">
+    <div class="sandbox-card">
+      <div class="sandbox-header">
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--fin-accent); font-weight: 700; letter-spacing: 0.05em;">Interactive Terminal Preview</div>
+          <div style="font-size: 18px; font-weight: 700; color: var(--text-main);">Dual-Model Directional Signal Output</div>
+        </div>
+        <div class="ticker-pills">
+          <button class="ticker-pill-btn active" onclick="switchSandbox('AAPL')">AAPL (Apple)</button>
+          <button class="ticker-pill-btn" onclick="switchSandbox('NVDA')">NVDA (Nvidia)</button>
+          <button class="ticker-pill-btn" onclick="switchSandbox('BTC')">BTC (Bitcoin)</button>
+          <button class="ticker-pill-btn" onclick="switchSandbox('TSLA')">TSLA (Tesla)</button>
+        </div>
+      </div>
+
+      <div class="models-matrix" id="box-sandboxMatrix">
+        <!-- Rendered dynamically via JS below -->
+      </div>
+    </div>
+  </section>
+
+  <!-- End-to-End Pipeline Workflow -->
+  <section class="pipeline-section" id="section-pipeline">
+    <div class="section-eyebrow">Architecture Flow</div>
+    <h2 class="section-heading">How TradeSage AI Generates Predictions</h2>
+
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <span class="step-badge">STEP 01</span>
+        <h4 class="step-title">Market Ingestion</h4>
+        <p class="step-desc">Pulls daily OHLCV bars via Yahoo Finance (equities) and Binance REST endpoints (crypto) alongside real news headlines.</p>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-badge">STEP 02</span>
+        <h4 class="step-title">Feature Engineering</h4>
+        <p class="step-desc">Computes RSI-14, MACD-26, 20 & 50-day Simple Moving Averages, volume momentum, and VADER financial sentiment.</p>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-badge">STEP 03</span>
+        <h4 class="step-title">Dual Inference</h4>
+        <p class="step-desc">Evaluates Scikit-Learn Random Forest alongside a shallow PyTorch LSTM neural net over 1 to 5-day horizon windows.</p>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-badge">STEP 04</span>
+        <h4 class="step-title">SHAP Factor Attribution</h4>
+        <p class="step-desc">Applies TreeExplainer & GradientExplainer to identify which indicators carried the highest directional weighting.</p>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-badge">STEP 05</span>
+        <h4 class="step-title">Honesty Backtesting</h4>
+        <p class="step-desc">Verifies historical win rate, Sharpe ratio, and peak-to-trough max drawdown on non-overlapping past intervals.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platform Core Capabilities -->
+  <section class="features-section" id="section-features">
+    <div class="section-eyebrow">Capabilities & Modules</div>
+    <h2 class="section-heading">Built on Disciplined Financial Engineering</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <h3 class="feature-title">Dual-Model Signal Engine</h3>
+        <p class="feature-body">
+          Infers directional momentum over 1 to 5-day horizons comparing a 100-tree Random Forest baseline with a PyTorch shallow LSTM neural network. Features automatic divergence alerts when models conflict.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3 class="feature-title">SHAP Factor Explainability</h3>
+        <p class="feature-body">
+          Zero black boxes. Every inference exposes quantitative SHAP feature attribution (via TreeExplainer & GradientExplainer), detailing how RSI, MACD, Moving Averages, and Sentiment drove the decision.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        </div>
+        <h3 class="feature-title">Honesty Framework Backtesting</h3>
+        <p class="feature-body">
+          Adheres strictly to the Honesty Framework: avoids misleading raw accuracy metrics and instead computes real-world Sharpe ratio, win rate, peak-to-trough max drawdown, and cumulative equity curves.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        </div>
+        <h3 class="feature-title">Multi-Asset Portfolio Tracker</h3>
+        <p class="feature-body">
+          Supports stocks and cryptocurrencies with live spot price integration from Yahoo Finance and Binance. Features dynamic asset autocomplete search, manual addition with pre-filling, position removal, and CSV batch import.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <h3 class="feature-title">Watchlist & Shift Alerts</h3>
+        <p class="feature-body">
+          Continuously monitors unheld assets, alerting the trader when model trajectories shift. Built-in feedback loop outcome resolution evaluates historical signal correctness over time.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M12 4v16"/></svg>
+        </div>
+        <h3 class="feature-title">Cloud DB & Background Retraining</h3>
+        <p class="feature-body">
+          Backed by Neon PostgreSQL cloud storage with complete schema management. Features configurable background daemon schedulers and an on-demand admin batch retrain trigger.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Honesty Framework Comparison Table -->
+  <section class="table-section" id="section-honesty">
+    <div class="section-eyebrow">Methodology</div>
+    <h2 class="section-heading">Why The Honesty Framework Matters</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Metric Dimension</th>
+            <th>Traditional Deceptive Backtesting</th>
+            <th>TradeSage AI Honesty Framework</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Primary Metric</strong></td>
+            <td>Overfitted "98% Raw Directional Accuracy"</td>
+            <td><strong class="val-pos">Annualized Sharpe Ratio & Win Rate %</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Downside Risk</strong></td>
+            <td>Ignored or hidden behind summary yields</td>
+            <td><strong class="val-pos">Peak-to-Trough Maximum Drawdown %</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Sample Leakage</strong></td>
+            <td>Overlapping future lookahead leakage</td>
+            <td><strong class="val-pos">Strict Walk-Forward Non-Overlapping Cycles</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Attribution</strong></td>
+            <td>Unexplainable neural network weights</td>
+            <td><strong class="val-pos">Quantitative SHAP Factor Decomposition</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Outcome Audit</strong></td>
+            <td>No post-trade feedback loop</td>
+            <td><strong class="val-pos">Automated Outcome Verification Resolution</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Architecture Metrics Strip -->
+  <div class="arch-strip">
+    <div class="arch-inner">
+      <div class="arch-stat-box">
+        <div class="arch-stat-num">2</div>
+        <div class="arch-stat-label">Independent ML Architectures (RF + LSTM)</div>
+      </div>
+      <div class="arch-stat-box">
+        <div class="arch-stat-num">100%</div>
+        <div class="arch-stat-label">Transparent SHAP Attribution</div>
+      </div>
+      <div class="arch-stat-box">
+        <div class="arch-stat-num">PostgreSQL</div>
+        <div class="arch-stat-label">Relational Persistence via Neon Cloud</div>
+      </div>
+      <div class="arch-stat-box">
+        <div class="arch-stat-num">&lt; 300ms</div>
+        <div class="arch-stat-label">Fast In-Memory Feature & Signal Cache</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frequently Asked Questions -->
+  <section class="faq-section" id="section-faq">
+    <div class="section-eyebrow">Common Questions</div>
+    <h2 class="section-heading">Frequently Asked Questions</h2>
+
+    <div class="faq-item open">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>Why run two distinct machine learning models side-by-side?</span>
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        Single-model algorithmic trading engines frequently fall victim to regime blindness. By pairing an ensemble tree baseline (Random Forest) with a sequence-memory deep model (PyTorch LSTM), TradeSage AI provides a cross-architecture sanity check. When both models agree, confidence is higher; when they disagree, the platform alerts you to divergence.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>What happens if the two models produce conflicting signals?</span>
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        The interface immediately raises an amber <strong>Model Divergence Warning</strong> banner. This advises the trader to reduce position sizing or wait for clearer momentum confirmation.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>How does the live spot price and portfolio management work?</span>
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        Positions are stored in Neon PostgreSQL and re-evaluated dynamically against live prices (via Yahoo Finance for equities and Binance for crypto). You can search assets by typing any letter, auto-fill purchase prices, delete positions with one click, or import batches via CSV.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span>Does TradeSage AI execute automated live trades?</span>
+        <span class="faq-icon">+</span>
+      </div>
+      <div class="faq-a">
+        No. TradeSage AI is strictly an algorithmic decision-support intelligence platform built for academic research and portfolio tracking. It never places unconfirmed orders on your broker account.
+      </div>
+    </div>
+  </section>
+
+  <!-- Authentication Modal -->
+  <div class="modal-backdrop" id="modal-landingAuth">
+    <div class="modal-panel">
+      <div class="modal-bar">
+        <h3 class="modal-title" id="lbl-landingAuthTitle">Access Trading Terminal</h3>
+        <button class="modal-btn-close" onclick="closeAuthModal()">&times;</button>
+      </div>
+
+      <div class="segmented-tabs" style="margin-bottom: 16px;">
+        <button id="tab-landingLogin" class="tab-btn active" style="flex: 1;" onclick="setLandingAuthMode('login')">Sign In</button>
+        <button id="tab-landingRegister" class="tab-btn" style="flex: 1;" onclick="setLandingAuthMode('register')">Create Account</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitLandingAuth();">
+        <div class="field-group">
+          <label for="txt-landingEmail">Email Address</label>
+          <input type="email" id="txt-landingEmail" placeholder="trader@tradesage.ai" required>
+        </div>
+        <div class="field-group">
+          <label for="txt-landingPassword">Password</label>
+          <input type="password" id="txt-landingPassword" placeholder="••••••••" required>
+        </div>
+        <div id="msg-landingError" style="font-size: 12px; color: var(--fin-down); margin-bottom: 10px; display: none;"></div>
+        
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; gap: 8px;">
+          <button type="button" class="btn btn-subtle" onclick="closeAuthModal()">Cancel</button>
+          <button type="submit" id="btn-landingSubmit" class="btn btn-primary">Continue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="footer-note">
+    TradeSage AI • Decision-support quantitative intelligence only, not financial advice.
+  </footer>
+
+  <script>
+    const API_BASE = (function() {
+      if (typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http")) {
+        if (window.location.port === "5000") return "";
+        return `${window.location.protocol}//${window.location.hostname}:5000`;
+      }
+      return "http://localhost:5000";
+    })();
+    let landingAuthMode = "login";
+
+    // Theme Management
+    const Theme = {
+      init() {
+        const saved = localStorage.getItem("tradesage-theme") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+      },
+      toggle() {
+        const current = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", current);
+        localStorage.setItem("tradesage-theme", current);
+      }
+    };
+    Theme.init();
+
+    // Copy to clipboard helper
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`Copied "${text}" to clipboard!`, "success");
+      }).catch(() => {
+        showToast(`Copied: ${text}`, "info");
+      });
+    }
+
+    // FAQ Toggle
+    function toggleFaq(el) {
+      const item = el.closest(".faq-item");
+      item.classList.toggle("open");
+    }
+
+    // Sandbox Demonstration Data
+    const SANDBOX_DATA = {
+      AAPL: {
+        rf: { dir: "UP", conf: 64, shap: [{ f: "RSI_14", w: "+0.142", pos: true, p: 90 }, { f: "MACD_HIST", w: "+0.098", pos: true, p: 65 }, { f: "SENTIMENT", w: "+0.065", pos: true, p: 45 }] },
+        lstm: { dir: "UP", conf: 61, shap: [{ f: "CLOSE_SEQ", w: "+0.125", pos: true, p: 85 }, { f: "VOL_MOMENTUM", w: "+0.081", pos: true, p: 55 }, { f: "SMA_20", w: "+0.042", pos: true, p: 30 }] }
+      },
+      NVDA: {
+        rf: { dir: "UP", conf: 72, shap: [{ f: "VOL_SPIKE", w: "+0.188", pos: true, p: 100 }, { f: "RSI_14", w: "+0.112", pos: true, p: 70 }, { f: "SENTIMENT", w: "+0.054", pos: true, p: 35 }] },
+        lstm: { dir: "UP", conf: 68, shap: [{ f: "CLOSE_SEQ", w: "+0.155", pos: true, p: 90 }, { f: "MACD_SIGNAL", w: "+0.076", pos: true, p: 50 }, { f: "SMA_50", w: "+0.038", pos: true, p: 25 }] }
+      },
+      BTC: {
+        rf: { dir: "UP", conf: 58, shap: [{ f: "REDDIT_SENT", w: "+0.122", pos: true, p: 80 }, { f: "RSI_14", w: "-0.048", pos: false, p: 35 }, { f: "VOL_DELTA", w: "+0.095", pos: true, p: 60 }] },
+        lstm: { dir: "DOWN", conf: 54, shap: [{ f: "CLOSE_SEQ", w: "-0.110", pos: false, p: 75 }, { f: "MACD_HIST", w: "-0.082", pos: false, p: 55 }, { f: "SENTIMENT", w: "+0.041", pos: true, p: 30 }] }
+      },
+      TSLA: {
+        rf: { dir: "DOWN", conf: 62, shap: [{ f: "RSI_14", w: "-0.135", pos: false, p: 85 }, { f: "MACD_HIST", w: "-0.091", pos: false, p: 60 }, { f: "NEWS_SENT", w: "-0.062", pos: false, p: 40 }] },
+        lstm: { dir: "DOWN", conf: 59, shap: [{ f: "CLOSE_SEQ", w: "-0.118", pos: false, p: 80 }, { f: "VOL_MOMENTUM", w: "-0.075", pos: false, p: 50 }, { f: "SMA_20", w: "-0.033", pos: false, p: 25 }] }
+      }
+    };
+
+    function switchSandbox(sym) {
+      document.querySelectorAll(".ticker-pill-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.textContent.startsWith(sym));
+      });
+      renderSandbox(sym);
+    }
+
+    function renderSandbox(sym) {
+      const data = SANDBOX_DATA[sym] || SANDBOX_DATA["AAPL"];
+      const container = document.getElementById("box-sandboxMatrix");
+      const isDiv = data.rf.dir !== data.lstm.dir;
+
+      container.innerHTML = `
+        <div class="matrix-cell">
+          <div class="matrix-head">
+            <span class="model-title">Random Forest Baseline (100 Trees)</span>
+            <span class="model-spec mono">3-Day Horizon</span>
+          </div>
+          <div class="signal-callout">
+            <div>
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Directional Forecast</div>
+              <div class="callout-dir ${data.rf.dir.toLowerCase()}">${data.rf.dir}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Confidence</div>
+              <div class="mono" style="font-size: 20px; font-weight: 700;">${data.rf.conf}%</div>
+            </div>
+          </div>
+          <div class="shap-box">
+            <div class="shap-legend">
+              <span>SHAP TreeExplainer Factor</span>
+              <span>Attribution</span>
+            </div>
+            ${data.rf.shap.map(s => `
+              <div class="shap-row">
+                <span class="shap-label">${s.f}</span>
+                <div class="shap-track"><div class="shap-bar ${s.pos ? 'pos' : 'neg'}" style="width: ${s.p}%;"></div></div>
+                <span class="mono ${s.pos ? 'val-pos' : 'val-neg'}" style="text-align: right;">${s.w}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="matrix-cell">
+          <div class="matrix-head">
+            <span class="model-title">Shallow PyTorch LSTM Neural Net</span>
+            <span class="model-spec mono">3-Day Horizon</span>
+          </div>
+          <div class="signal-callout">
+            <div>
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Directional Forecast</div>
+              <div class="callout-dir ${data.lstm.dir.toLowerCase()}">${data.lstm.dir}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Confidence</div>
+              <div class="mono" style="font-size: 20px; font-weight: 700;">${data.lstm.conf}%</div>
+            </div>
+          </div>
+          <div class="shap-box">
+            <div class="shap-legend">
+              <span>SHAP GradientExplainer Factor</span>
+              <span>Attribution</span>
+            </div>
+            ${data.lstm.shap.map(s => `
+              <div class="shap-row">
+                <span class="shap-label">${s.f}</span>
+                <div class="shap-track"><div class="shap-bar ${s.pos ? 'pos' : 'neg'}" style="width: ${s.p}%;"></div></div>
+                <span class="mono ${s.pos ? 'val-pos' : 'val-neg'}" style="text-align: right;">${s.w}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        ${isDiv ? `<div class="divergence-alert" style="grid-column: 1 / -1;">⚠ Model Divergence Warning: Random Forest is ${data.rf.dir} while LSTM is ${data.lstm.dir}. Exercise conservative position sizing.</div>` : ''}
+      `;
+    }
+
+    renderSandbox("AAPL");
+
+    function showToast(msg, type = "info") {
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+      const el = document.createElement("div");
+      el.className = `toast toast-${type}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function openAuthModal(mode = "login") {
+      window.location.href = `auth.html?mode=${mode}`;
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById("modal-landingAuth");
+      if (modal) modal.classList.remove("active");
+    }
+
+    function setLandingAuthMode(mode) {
+      window.location.href = `auth.html?mode=${mode}`;
+    }
+
+    async function submitLandingAuth() {
+      window.location.href = `auth.html?mode=${landingAuthMode}`;
+    }
+  </script>
+</body>
+</html>
