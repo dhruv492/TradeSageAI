@@ -548,8 +548,13 @@
                 <button class="btn btn-subtle btn-xs" onclick="Admin.copyLog()" style="margin-left:4px;">Copy</button>
               </div>
             </div>
-            <div id="box-feedHealth" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; min-height: 140px; color: var(--text-muted); line-height: 1.6;">
-              Click "Test Connectivity" to ping external Yahoo Finance & Binance price feeds.
+            <div id="box-feedHealth" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-size: 12px; min-height: 140px; color: var(--text-muted); line-height: 1.6;">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 110px; color: var(--text-dim); text-align: center;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px; opacity: 0.6;">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                <span>Click <strong>"Test Connectivity"</strong> to run a live health check on external Yahoo Finance & Binance price feeds.</span>
+              </div>
             </div>
           </div>
         </div>

@@ -2204,67 +2204,137 @@ const Admin = {
 
   async checkHealth() {
     const el = document.getElementById("box-feedHealth");
-    el.innerHTML = `<span style="color: var(--fin-neutral);">Testing data feeds...</span>`;
+    if (!el) return;
+    el.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px; color: var(--text-dim);">
+        <div class="spinner" style="width: 16px; height: 16px;"></div>
+        <span style="font-size: 13px;">Pinging data feed endpoints (Yahoo Finance & Binance REST)...</span>
+      </div>
+    `;
 
     const { ok, data } = await Api.fetch("/api/admin/health");
     if (!ok) {
-      el.innerHTML = `<span class="val-neg">Health check diagnostic call failed.</span>`;
+      el.innerHTML = `
+        <div style="padding: 14px; background: rgba(255, 59, 92, 0.1); border: 1px solid rgba(255, 59, 92, 0.25); border-radius: 6px; color: #ff3b5c; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+          <span>⚠️</span> <span>Diagnostic call failed: Unable to connect to administrative server endpoint.</span>
+        </div>
+      `;
       return;
     }
 
     if (!data || data.length === 0) {
-      el.innerHTML = `No tracked assets registered to test.`;
+      el.innerHTML = `
+        <div style="text-align: center; color: var(--text-dim); padding: 24px; font-size: 12px;">
+          ℹ️ No tracked assets registered in registry. Add assets to test live connectivity.
+        </div>
+      `;
       return;
     }
 
-    el.innerHTML = data.map(h => {
-      const isOk = h.status.toLowerCase() === "ok";
-      return `<div><span style="color:${isOk ? '#00d68f' : '#ff3b5c'}; font-weight:bold;">[${h.status.toUpperCase()}]</span> ${h.assetSymbol} (${h.source})</div>`;
-    }).join("");
-    },
-    // Copy the current feed health log to clipboard
-    copyLog() {
-      const el = document.getElementById("box-feedHealth");
-      if (!el) return;
-      const text = el.innerText || el.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        Toast.show("Connectivity log copied to clipboard.", "info");
-      }).catch(() => {
-        Toast.show("Failed to copy log.", "error");
-      });
-    },
+    const okCount = data.filter(h => h.status === "ok").length;
+    const failCount = data.length - okCount;
+    const timeStr = new Date().toLocaleTimeString();
 
-    adminSearchDebounceTimer: null,
-    onSymbolInput(query) {
-      clearTimeout(this.adminSearchDebounceTimer);
-      const dropdown = document.getElementById("dropdown-adminSuggestions");
-      if (!dropdown) return;
-      this.adminSearchDebounceTimer = setTimeout(async () => {
-        const q = query.trim().toLowerCase();
-        const { ok, data } = await Api.fetch(`/api/assets/search?q=${encodeURIComponent(q)}`);
-        if (!ok || !data || data.length === 0) {
-          dropdown.style.display = "none";
-          return;
-        }
-        dropdown.innerHTML = data.map(item => `
-          <div class="suggestion-item" onclick="Admin.selectAsset('${item.symbol}', '${item.type}', '${item.name.replace(/'/g, "\\'")}')">
-            <div class="suggestion-item-main">
-              <span class="suggestion-sym">${item.symbol}</span>
-              <span class="suggestion-name">${item.name}</span>
+    let html = `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); font-size: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="color: var(--text-dim);">Diagnostic Summary</span>
+          <span style="font-size: 10px; color: var(--text-dim); background: var(--bg-card); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">${timeStr}</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <span style="font-size: 11px; font-weight: 600; background: rgba(0, 214, 143, 0.15); color: #00d68f; border: 1px solid rgba(0, 214, 143, 0.3); padding: 2px 8px; border-radius: 12px;">
+            ✓ ${okCount} Operational
+          </span>
+          ${failCount > 0 ? `
+            <span style="font-size: 11px; font-weight: 600; background: rgba(255, 59, 92, 0.15); color: #ff3b5c; border: 1px solid rgba(255, 59, 92, 0.3); padding: 2px 8px; border-radius: 12px;">
+              ✕ ${failCount} Issues
+            </span>
+          ` : ''}
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+    `;
+
+    html += data.map(h => {
+      const isOk = h.status === "ok";
+      const isDegraded = h.status === "empty_response";
+      const statusBg = isOk ? "rgba(0, 214, 143, 0.1)" : isDegraded ? "rgba(255, 170, 0, 0.1)" : "rgba(255, 59, 92, 0.1)";
+      const statusBorder = isOk ? "rgba(0, 214, 143, 0.25)" : isDegraded ? "rgba(255, 170, 0, 0.25)" : "rgba(255, 59, 92, 0.25)";
+      const statusColor = isOk ? "#00d68f" : isDegraded ? "#ffaa00" : "#ff3b5c";
+      const icon = isOk ? "✓" : isDegraded ? "!" : "✕";
+      const statusLabel = isOk ? "ONLINE (Active)" : isDegraded ? "NO DATA (Empty)" : "OFFLINE (Error)";
+      const providerLabel = h.source === "yfinance" ? "Yahoo Finance API" : h.source === "binance" ? "Binance REST API" : (h.source || "External Provider");
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-card, rgba(255,255,255,0.02)); border: 1px solid var(--border-subtle); border-radius: 6px; font-family: var(--font-sans);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 26px; height: 26px; border-radius: 50%; background: ${statusBg}; border: 1px solid ${statusBorder}; color: ${statusColor}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+              ${icon}
             </div>
-            <span class="tag ${item.type === 'crypto' ? 'tag-crypto' : 'tag-stock'}">${item.type}</span>
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 700; color: var(--text-main); font-size: 13px;">${h.assetSymbol}</span>
+                <span class="tag ${h.assetType === 'crypto' ? 'tag-crypto' : 'tag-stock'}" style="font-size: 10px; padding: 1px 5px;">${h.assetType}</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 1px;">Feed Source: <strong style="color: var(--text-muted);">${providerLabel}</strong></div>
+            </div>
           </div>
-        `).join("");
-        dropdown.style.display = "block";
-      }, 180);
-    },
+          <div style="text-align: right;">
+            <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorder}; letter-spacing: 0.3px;">
+              ${statusLabel}
+            </span>
+          </div>
+        </div>
+      `;
+    }).join("");
 
-    selectAsset(symbol, type, name) {
-      document.getElementById("txt-adminSymbol").value = symbol;
-      document.getElementById("cmb-adminType").value = type;
-      const dropdown = document.getElementById("dropdown-adminSuggestions");
-      if (dropdown) dropdown.style.display = "none";
-    }
+    html += `</div>`;
+    el.innerHTML = html;
+  },
+
+  // Copy the current feed health log to clipboard
+  copyLog() {
+    const el = document.getElementById("box-feedHealth");
+    if (!el) return;
+    const text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      Toast.show("Connectivity log copied to clipboard.", "info");
+    }).catch(() => {
+      Toast.show("Failed to copy log.", "error");
+    });
+  },
+
+  adminSearchDebounceTimer: null,
+  onSymbolInput(query) {
+    clearTimeout(this.adminSearchDebounceTimer);
+    const dropdown = document.getElementById("dropdown-adminSuggestions");
+    if (!dropdown) return;
+    this.adminSearchDebounceTimer = setTimeout(async () => {
+      const q = query.trim().toLowerCase();
+      const { ok, data } = await Api.fetch(`/api/assets/search?q=${encodeURIComponent(q)}`);
+      if (!ok || !data || data.length === 0) {
+        dropdown.style.display = "none";
+        return;
+      }
+      dropdown.innerHTML = data.map(item => `
+        <div class="suggestion-item" onclick="Admin.selectAsset('${item.symbol}', '${item.type}', '${item.name.replace(/'/g, "\\'")}')">
+          <div class="suggestion-item-main">
+            <span class="suggestion-sym">${item.symbol}</span>
+            <span class="suggestion-name">${item.name}</span>
+          </div>
+          <span class="tag ${item.type === 'crypto' ? 'tag-crypto' : 'tag-stock'}">${item.type}</span>
+        </div>
+      `).join("");
+      dropdown.style.display = "block";
+    }, 180);
+  },
+
+  selectAsset(symbol, type, name) {
+    document.getElementById("txt-adminSymbol").value = symbol;
+    document.getElementById("cmb-adminType").value = type;
+    const dropdown = document.getElementById("dropdown-adminSuggestions");
+    if (dropdown) dropdown.style.display = "none";
+  }
 };
 
 /* --- LIVE MARKET RIBBON (Fix #6) --- */
@@ -2397,5 +2467,11 @@ document.addEventListener("click", (e) => {
   const auditInput = document.getElementById("txt-historySymbol");
   if (auditDrop && auditInput && !auditDrop.contains(e.target) && e.target !== auditInput) {
     auditDrop.style.display = "none";
+  }
+  // Admin asset dropdown
+  const adminDrop = document.getElementById("dropdown-adminSuggestions");
+  const adminInput = document.getElementById("txt-adminSymbol");
+  if (adminDrop && adminInput && !adminDrop.contains(e.target) && e.target !== adminInput) {
+    adminDrop.style.display = "none";
   }
 });
