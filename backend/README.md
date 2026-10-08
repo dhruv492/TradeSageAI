@@ -26,6 +26,7 @@ advice.
 - `tests/smoke_test.py`, `tests/smoke_test_full.py` — execution-based verification (not unit-test stubs; these run the real pipeline end to end)
 - `tests/smoke_test_routes.py` — drives the actual Flask routes via the test client (auth cookies, `/api/signal`, `/api/backtest`), catching wiring bugs the two tests above can't see since they call service modules directly
 - `tests/smoke_test_phase3.py` — route-level test for Watchlist, Admin panel, feedback loop, and comparison view (FR-5, FR-6.2, FR-6.3, FR-7)
+- `tests/smoke_test_auth.py` — auth bypass proof: no credentials, `X-User-Id`, `Bearer` tokens all return 401; tests user isolation
 - `tests/conftest.py` — puts `backend/` on `sys.path` so the smoke tests' bare `import app` / `import price_service` still resolve now that tests live in a subfolder
 
 ## Setup
@@ -58,8 +59,19 @@ test functions, so run each one directly with `backend/` on `PYTHONPATH`
 PYTHONPATH=. python tests/smoke_test.py         # SHAP explainability + backtesting in isolation
 PYTHONPATH=. python tests/smoke_test_full.py    # full pipeline: auth -> portfolio -> features -> sentiment -> both models -> SHAP -> persisted signals
 PYTHONPATH=. python tests/smoke_test_routes.py  # /api/signal + /api/backtest through real Flask routes (mocked price data)
-PYTHONPATH=. python tests/smoke_test_phase3.py  # watchlist, feedback loop, comparison, admin panel through real Flask routes
+PYTHONPATH=. python tests/smoke_test_phase3.py              # watchlist, feedback loop, comparison, admin panel through real Flask routes
+PYTHONPATH=. python tests/smoke_test_auth.py                # auth bypass proof: no creds, X-User-Id, Bearer tokens all -> 401
 ```
+
+All five scripts must print their `PASSED` line for the build to be considered
+valid. A convenience runner is also provided:
+
+```bash
+PYTHONPATH=. python -m run_all_smoke_tests                # runs all 5 tests in sequence
+```
+
+(You can create `run_all_smoke_tests.py` in `backend/tests/` if you wish,
+or run the above lines individually.)
 
 Both scripts use synthetic data and mocked price/news fetchers by design —
 no live API keys are required to verify correctness. Real yfinance/Binance/

@@ -131,9 +131,15 @@ def create_app(configOverrides=None):
         "pool_pre_ping": True,
         "pool_recycle": 300,
     }
-    app.config["SECRET_KEY"] = os.environ.get(
-        "SECRET_KEY", "dev-only-change-in-production"
-    )
+    _appSecretKey = os.environ.get("SECRET_KEY")
+    if not _appSecretKey:
+        if os.environ.get("FLASK_DEBUG") != "1":
+            raise ValueError(
+                "SECRET_KEY is not set and FLASK_DEBUG is not \"1\". "
+                "Set SECRET_KEY in your environment or .env before starting the app."
+            )
+        _appSecretKey = "dev-only-change-in-production"
+    app.config["SECRET_KEY"] = _appSecretKey
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     if configOverrides:
         app.config.update(configOverrides)
@@ -158,9 +164,9 @@ def create_app(configOverrides=None):
 
     with app.app_context():
         db.create_all()
-        if not app.config.get("TESTING"):
-            demoUser = db.session.query(User).filter_by(email="trader@tradesage.ai").first()
-            if not demoUser:
+        if not app.config.get("TESTING") and os.environ.get("SEED_DEMO_USER") == "1":
+            existingDemo = db.session.query(User).filter_by(email="trader@tradesage.ai").first()
+            if not existingDemo:
                 from werkzeug.security import generate_password_hash
                 db.session.add(User(email="trader@tradesage.ai", passwordHash=generate_password_hash("Password123!")))
                 db.session.commit()
@@ -184,18 +190,8 @@ def create_app(configOverrides=None):
 
     @loginManager.request_loader
     def loadUserFromRequest(req):
-        authHeader = req.headers.get("Authorization")
-        if authHeader and authHeader.startswith("Bearer "):
-            tokenVal = authHeader[7:].strip()
-            if tokenVal.startswith("ts_"):
-                parts = tokenVal.split("_")
-                if len(parts) >= 2 and parts[1].isdigit():
-                    return db.session.get(User, int(parts[1]))
-            elif tokenVal.isdigit():
-                return db.session.get(User, int(tokenVal))
-        userIdHeader = req.headers.get("X-User-Id")
-        if userIdHeader and userIdHeader.isdigit():
-            return db.session.get(User, int(userIdHeader))
+        # Preferred: same-origin Flask session cookie set by Flask-Login.
+        # No unsigned / guessable token paths are accepted here.
         return None
 
     frontendDir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
@@ -687,4 +683,4 @@ if __name__ == "__main__":
     with application.app_context():
         db.create_all()
     startScheduler(application, _getOrTrainModels, G_ModelCache)
-    application.run(debug=True)
+    application.run(debug=os.environ.get("FLASK_DEBUG") == "1")

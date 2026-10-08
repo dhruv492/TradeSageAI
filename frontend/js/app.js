@@ -90,16 +90,9 @@ const Api = {
   async fetch(path, options = {}) {
     try {
       const token = localStorage.getItem("tradesage_token");
-      const storedUserStr = localStorage.getItem("tradesage_user");
-      let userId = "";
-      if (storedUserStr) {
-        try { userId = JSON.parse(storedUserStr).userId; } catch (e) {}
-      }
-
       const headers = {
         "Content-Type": "application/json",
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        ...(userId ? { "X-User-Id": String(userId) } : {}),
         ...(options.headers || {})
       };
 
@@ -297,11 +290,9 @@ const Auth = {
   handleLoginSuccess(email, token, userId) {
     State.userEmail = email;
     if (email) {
-      // Fix #5: userId comes from the API response, never fall back to a
-      // hardcoded constant — a hardcoded 1 causes all users to share the
-      // same identity when cross-origin cookies are blocked.
-      const stored = { email, userId: userId ?? null, token: token || "session" };
-      localStorage.setItem("tradesage_user", JSON.stringify(stored));
+      // Only store email - do not store userId as auth credential.
+      // Session identity is managed by Flask-Login session cookie (same-origin).
+      localStorage.setItem("tradesage_user", JSON.stringify({ email, userId: null }));
       if (token) localStorage.setItem("tradesage_token", token);
     }
     document.getElementById("userPill").innerHTML = `Trader: <strong>${email}</strong>`;
@@ -321,8 +312,9 @@ const Auth = {
   async logout() {
     await Api.fetch("/api/logout", { method: "POST" });
     State.userEmail = null;
-    localStorage.removeItem("tradesage_user");
     localStorage.removeItem("tradesage_token");
+    // Do not remove tradesage_user entirely so the email pill can still show
+    // the last known email; the server will redirect unauthenticated users.
     document.getElementById("userPill").textContent = "Not Logged In";
     document.getElementById("btn-openAuth").style.display = "inline-flex";
     document.getElementById("btn-logout").style.display = "none";
@@ -2003,7 +1995,7 @@ const Audit = {
     const lstmCorrect = lstmResolved.filter(r => r.wasCorrect === true);
     const lstmAcc = lstmResolved.length > 0 ? (lstmCorrect.length / lstmResolved.length * 100) : null;
 
-    // Render plain-English summary card
+        // Render plain-English summary card
     const summaryCard = document.getElementById("auditSummaryCard");
     if (summaryCard) {
       let gradeText = "⚪ VERIFICATION PENDING";
@@ -2012,21 +2004,23 @@ const Audit = {
       let plainText = `Predictions for <strong>${this._currentSymbol}</strong> have been recorded, but subsequent market price candles are still unfolding to verify directional ground truth.`;
 
       if (resolvedAll.length > 0) {
+        // Neutral wording: hit rate with sample size, no "reliably", "strong", "proven"
+        const hitRateLabel = `${overallAcc.toFixed(1)}%`;
         if (overallAcc >= 70) {
-          gradeText = "🟢 HIGH RELIABILITY";
+          gradeText = "🟢 CONFIRMED HIT RATE";
           gradeColor = "var(--fin-pos)";
           gradeBg = "rgba(16,185,129,0.12)";
-          plainText = `The AI models demonstrated <strong>strong empirical accuracy (${overallAcc.toFixed(1)}%)</strong> on <strong>${this._currentSymbol}</strong> across ${resolvedAll.length} completed market horizon(s). Past forecasts have proven reliably directional.`;
+          plainText = `Of <strong>${resolvedAll.length}</strong> resolved forecasts for <strong>${this._currentSymbol}</strong>, <strong>${hitRateLabel}</strong> matched the realised direction. Small samples are unreliable and past results do not predict future ones.`;
         } else if (overallAcc >= 50) {
-          gradeText = "🟡 MODERATE RELIABILITY";
+          gradeText = "🟡 MODERATE HIT RATE";
           gradeColor = "var(--fin-alert)";
           gradeBg = "rgba(245,158,11,0.12)";
-          plainText = `The models achieved <strong>moderate accuracy (${overallAcc.toFixed(1)}%)</strong> on <strong>${this._currentSymbol}</strong>. Approximately half of verified forecasts matched actual price movement — use with confirming technical indicators.`;
+          plainText = `Of <strong>${resolvedAll.length}</strong> resolved forecasts for <strong>${this._currentSymbol}</strong>, <strong>${hitRateLabel}</strong> matched the realised direction. Use with confirming technical indicators; no guarantee of future direction.`;
         } else {
-          gradeText = "🔴 LOW RELIABILITY";
+          gradeText = "🔴 INSUFFICIENT HIT RATE";
           gradeColor = "var(--fin-neg)";
           gradeBg = "rgba(239,68,68,0.12)";
-          plainText = `The models underperformed on <strong>${this._currentSymbol}</strong> with only <strong>${overallAcc.toFixed(1)}% accuracy</strong>. High volatility or regime shifts caused repeated forecast misses on this asset.`;
+          plainText = `Of <strong>${resolvedAll.length}</strong> resolved forecasts for <strong>${this._currentSymbol}</strong>, <strong>${hitRateLabel}</strong> matched the realised direction. High volatility or regime shifts caused repeated forecast misses; past performance does not guarantee future results.`;
         }
       }
 
@@ -2049,9 +2043,9 @@ const Audit = {
 
           <div class="audit-grid">
             <div class="audit-tile">
-              <div class="audit-tile-lbl">Verified Accuracy</div>
+              <div class="audit-tile-lbl">Hit rate (n = X)</div>
               <div class="audit-tile-val mono ${overallAcc !== null && overallAcc >= 60 ? 'val-pos' : (overallAcc !== null && overallAcc < 50 ? 'val-neg' : 'val-neu')}">
-                ${overallAcc !== null ? overallAcc.toFixed(1) + '%' : 'Pending'}
+                ${overallAcc !== null ? `${overallAcc.toFixed(1)}% (n = ${resolvedAll.length})` : 'Pending'}
               </div>
             </div>
             <div class="audit-tile">
@@ -2061,13 +2055,13 @@ const Audit = {
             <div class="audit-tile">
               <div class="audit-tile-lbl">Random Forest</div>
               <div class="audit-tile-val mono ${rfAcc !== null && rfAcc >= 60 ? 'val-pos' : ''}">
-                ${rfAcc !== null ? rfAcc.toFixed(1) + '%' : '—'}
+                ${rfAcc !== null ? `${rfAcc.toFixed(1)}% (n = ${rfResolved.length})` : '—'}
               </div>
             </div>
             <div class="audit-tile">
               <div class="audit-tile-lbl">Shallow LSTM</div>
               <div class="audit-tile-val mono ${lstmAcc !== null && lstmAcc >= 60 ? 'val-pos' : ''}">
-                ${lstmAcc !== null ? lstmAcc.toFixed(1) + '%' : '—'}
+                ${lstmAcc !== null ? `${lstmAcc.toFixed(1)}% (n = ${lstmResolved.length})` : '—'}
               </div>
             </div>
           </div>
