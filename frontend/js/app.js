@@ -2221,7 +2221,50 @@ const Admin = {
       const isOk = h.status.toLowerCase() === "ok";
       return `<div><span style="color:${isOk ? '#00d68f' : '#ff3b5c'}; font-weight:bold;">[${h.status.toUpperCase()}]</span> ${h.assetSymbol} (${h.source})</div>`;
     }).join("");
-  }
+    },
+    // Copy the current feed health log to clipboard
+    copyLog() {
+      const el = document.getElementById("box-feedHealth");
+      if (!el) return;
+      const text = el.innerText || el.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        Toast.show("Connectivity log copied to clipboard.", "info");
+      }).catch(() => {
+        Toast.show("Failed to copy log.", "error");
+      });
+    },
+
+    adminSearchDebounceTimer: null,
+    onSymbolInput(query) {
+      clearTimeout(this.adminSearchDebounceTimer);
+      const dropdown = document.getElementById("dropdown-adminSuggestions");
+      if (!dropdown) return;
+      this.adminSearchDebounceTimer = setTimeout(async () => {
+        const q = query.trim().toLowerCase();
+        const { ok, data } = await Api.fetch(`/api/assets/search?q=${encodeURIComponent(q)}`);
+        if (!ok || !data || data.length === 0) {
+          dropdown.style.display = "none";
+          return;
+        }
+        dropdown.innerHTML = data.map(item => `
+          <div class="suggestion-item" onclick="Admin.selectAsset('${item.symbol}', '${item.type}', '${item.name.replace(/'/g, "\\'")}')">
+            <div class="suggestion-item-main">
+              <span class="suggestion-sym">${item.symbol}</span>
+              <span class="suggestion-name">${item.name}</span>
+            </div>
+            <span class="tag ${item.type === 'crypto' ? 'tag-crypto' : 'tag-stock'}">${item.type}</span>
+          </div>
+        `).join("");
+        dropdown.style.display = "block";
+      }, 180);
+    },
+
+    selectAsset(symbol, type, name) {
+      document.getElementById("txt-adminSymbol").value = symbol;
+      document.getElementById("cmb-adminType").value = type;
+      const dropdown = document.getElementById("dropdown-adminSuggestions");
+      if (dropdown) dropdown.style.display = "none";
+    }
 };
 
 /* --- LIVE MARKET RIBBON (Fix #6) --- */

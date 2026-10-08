@@ -511,6 +511,7 @@
               </select>
               <button class="btn btn-primary btn-xs" onclick="Admin.addTracked()">Register</button>
             </div>
+<div id="dropdown-adminSuggestions" class="suggestions-dropdown" style="display: none;"></div>
             <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
               Enrolls symbol in automated health checks and scheduled model retraining.
             </div>
@@ -535,7 +536,10 @@
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">Data Feed Connectivity Log</span>
-              <button class="btn btn-subtle btn-xs" onclick="Admin.checkHealth()">Test Connectivity</button>
+              <div>
+                <button class="btn btn-subtle btn-xs" onclick="Admin.checkHealth()">Test Connectivity</button>
+                <button class="btn btn-subtle btn-xs" onclick="Admin.copyLog()" style="margin-left:4px;">Copy</button>
+              </div>
             </div>
             <div id="box-feedHealth" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; min-height: 140px; color: var(--text-muted); line-height: 1.6;">
               Click "Test Connectivity" to ping external Yahoo Finance & Binance price feeds.
