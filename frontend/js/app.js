@@ -2177,6 +2177,16 @@ const Admin = {
     }
     Toast.show("Batch retraining initiated for tracked assets...", "info");
 
+    const healthBox = document.getElementById("box-feedHealth");
+    if (healthBox) {
+      healthBox.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px; color: var(--text-dim);">
+          <div class="spinner" style="width: 16px; height: 16px;"></div>
+          <span style="font-size: 13px;">Executing model retraining sweep across tracked assets...</span>
+        </div>
+      `;
+    }
+
     const { ok, data } = await Api.fetch("/api/admin/retrain", { method: "POST" });
     if (btn) {
       btn.disabled = false;
@@ -2185,20 +2195,92 @@ const Admin = {
 
     if (!ok) {
       Toast.show("Retraining request failed.", "error");
+      if (healthBox) {
+        healthBox.innerHTML = `
+          <div style="padding: 14px; background: rgba(255, 59, 92, 0.1); border: 1px solid rgba(255, 59, 92, 0.25); border-radius: 6px; color: #ff3b5c; font-size: 12px;">
+            ⚠️ Retraining sweep failed to execute on server.
+          </div>
+        `;
+      }
       return;
     }
 
     if (data.status === "no_tracked_assets") {
       Toast.show("No tracked assets registered to retrain.", "warning");
+      if (healthBox) {
+        healthBox.innerHTML = `
+          <div style="text-align: center; color: var(--text-dim); padding: 24px; font-size: 12px;">
+            ℹ️ No tracked assets registered in registry.
+          </div>
+        `;
+      }
       return;
     }
 
-    const count = (data.results || []).filter(r => r.status === "retrained").length;
-    Toast.show(`Successfully retrained ${count} tracked asset model(s).`, "success");
-    const healthBox = document.getElementById("box-feedHealth");
-    if (healthBox && data.results) {
-      healthBox.innerHTML = `<div><strong>Retrain Sweep Log (${new Date().toLocaleTimeString()}):</strong></div>` +
-        data.results.map(r => `<div><span style="color:${r.status === 'retrained' ? '#00d68f' : '#ff3b5c'};">[${r.status.toUpperCase()}]</span> ${r.assetSymbol} (${r.models ? r.models.join(', ') : 'error'}) - Data points: ${r.dataPoints || 0}, Sentiment: ${r.sentiment ?? 'N/A'}</div>`).join("");
+    const results = data.results || [];
+    const okCount = results.filter(r => r.status === "retrained").length;
+    const failCount = results.length - okCount;
+    const timeStr = new Date().toLocaleTimeString();
+
+    Toast.show(`Successfully retrained ${okCount} tracked asset model(s).`, "success");
+
+    if (healthBox) {
+      let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); font-size: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: var(--text-dim);">Retrain Sweep Summary</span>
+            <span style="font-size: 10px; color: var(--text-dim); background: var(--bg-card); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">${timeStr}</span>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <span style="font-size: 11px; font-weight: 600; background: rgba(0, 214, 143, 0.15); color: #00d68f; border: 1px solid rgba(0, 214, 143, 0.3); padding: 2px 8px; border-radius: 12px;">
+              ✓ ${okCount} Retrained
+            </span>
+            ${failCount > 0 ? `
+              <span style="font-size: 11px; font-weight: 600; background: rgba(255, 59, 92, 0.15); color: #ff3b5c; border: 1px solid rgba(255, 59, 92, 0.3); padding: 2px 8px; border-radius: 12px;">
+                ✕ ${failCount} Failed
+              </span>
+            ` : ''}
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+      `;
+
+      html += results.map(r => {
+        const isOk = r.status === "retrained";
+        const statusBg = isOk ? "rgba(0, 214, 143, 0.1)" : "rgba(255, 59, 92, 0.1)";
+        const statusBorder = isOk ? "rgba(0, 214, 143, 0.25)" : "rgba(255, 59, 92, 0.25)";
+        const statusColor = isOk ? "#00d68f" : "#ff3b5c";
+        const icon = isOk ? "✓" : "✕";
+        const statusLabel = isOk ? "RETRAINED" : "FAILED";
+        const modelNames = r.models && r.models.length > 0 ? r.models.join(", ") : "N/A";
+
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-card, rgba(255,255,255,0.02)); border: 1px solid var(--border-subtle); border-radius: 6px; font-family: var(--font-sans);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 26px; height: 26px; border-radius: 50%; background: ${statusBg}; border: 1px solid ${statusBorder}; color: ${statusColor}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+                ${icon}
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-weight: 700; color: var(--text-main); font-size: 13px;">${r.assetSymbol}</span>
+                  <span style="font-size: 10px; padding: 1px 6px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-dim);">${modelNames}</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+                  Data points: <strong style="color: var(--text-muted);">${r.dataPoints || 0}</strong> • Sentiment: <strong style="color: var(--text-muted);">${r.sentiment ?? 'N/A'}</strong>
+                </div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorder}; letter-spacing: 0.3px;">
+                ${statusLabel}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      html += `</div>`;
+      healthBox.innerHTML = html;
     }
   },
 
