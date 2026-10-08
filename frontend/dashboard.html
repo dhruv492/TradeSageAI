@@ -504,14 +504,21 @@
               Register Master Tracked Asset
             </div>
             <div class="control-row">
-              <input type="text" id="txt-adminSymbol" placeholder="SYMBOL" style="width: 120px; text-transform: uppercase;">
+              <div style="position: relative;">
+                <input type="text" id="txt-adminSymbol"
+                  placeholder="Search asset (e.g. AAPL, BTC, NVDA…)"
+                  style="width: 260px; text-transform: uppercase;"
+                  autocomplete="off"
+                  oninput="Admin.onSymbolInput(this.value)"
+                  onfocus="Admin.onSymbolInput(this.value)">
+                <div id="dropdown-adminSuggestions" class="suggestions-dropdown" style="display: none;"></div>
+              </div>
               <select id="cmb-adminType">
                 <option value="stock">Stock</option>
                 <option value="crypto">Crypto</option>
               </select>
               <button class="btn btn-primary btn-xs" onclick="Admin.addTracked()">Register</button>
             </div>
-<div id="dropdown-adminSuggestions" class="suggestions-dropdown" style="display: none;"></div>
             <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
               Enrolls symbol in automated health checks and scheduled model retraining.
             </div>
