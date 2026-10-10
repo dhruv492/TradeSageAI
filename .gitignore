@@ -31,3 +31,10 @@ Thumbs.db
 MANUAL_TESTING_GUIDE.md
 .bob/
 
+Memory.md
+*.bat
+package-lock.json
+/check_*.py
+/fix_*.py
+/verify_*.py
+
