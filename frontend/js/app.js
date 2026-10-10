@@ -2434,42 +2434,42 @@ async function refreshMarketRibbon() {
   const items = document.querySelectorAll(".market-ribbon .ribbon-item");
   if (!items || items.length === 0) return;
 
-  await Promise.allSettled(
-    RIBBON_ASSETS.map(async (asset, idx) => {
-      const item = items[idx];
-      if (!item) return;
+  const assetsParam = RIBBON_ASSETS.map(a => `${a.symbol}:${a.type}`).join(",");
+  const { ok, data } = await Api.fetch(`/api/price/batch?assets=${encodeURIComponent(assetsParam)}`);
+  if (!ok || !data) return;
 
-      const { ok, data } = await Api.fetch(
-        `/api/price/spot?assetSymbol=${encodeURIComponent(asset.symbol)}&assetType=${asset.type}`
-      );
-      if (!ok || data.price === undefined) return;
+  RIBBON_ASSETS.forEach((asset, idx) => {
+    const item = items[idx];
+    if (!item) return;
 
-      const price = Number(data.price);
-      const valEl = item.querySelector(".val");
-      if (valEl) {
-        valEl.textContent = price >= 1
-          ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-          : `$${price.toFixed(4)}`;
-      }
-      // Remove the static change % label — we only have spot price, not prev close.
-      // Replace with a live marker so the user knows it's real-time data.
-      const changeEl = item.querySelector(".val-pos, .val-neg");
-      if (changeEl) {
-        changeEl.textContent = "● live";
-        changeEl.className = "val-live";
-      }
-    })
-  );
+    const res = data[asset.symbol];
+    if (!res || res.price === undefined) return;
+
+    const price = Number(res.price);
+    const valEl = item.querySelector(".val");
+    if (valEl) {
+      valEl.textContent = price >= 1
+        ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : `$${price.toFixed(4)}`;
+    }
+    const changeEl = item.querySelector(".val-pos, .val-neg");
+    if (changeEl) {
+      changeEl.textContent = "● live";
+      changeEl.className = "val-live";
+    }
+  });
 }
 
 /* --- INITIAL BOOT SEQUENCE --- */
 function loadAllTerminalData() {
-  Portfolio.load();
-  Watchlist.load();
-  Admin.loadTracked();
-  Admin.loadConfig();
-  // Fix #6: refresh ribbon with live prices now that we have an auth session
-  refreshMarketRibbon();
+  // Execute all initial view loading in parallel for instantaneous rendering
+  Promise.allSettled([
+    Portfolio.load(),
+    Watchlist.load(),
+    Admin.loadTracked(),
+    Admin.loadConfig(),
+    refreshMarketRibbon()
+  ]);
 }
 
 window.addEventListener("DOMContentLoaded", () => {

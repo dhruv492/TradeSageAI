@@ -317,6 +317,31 @@ def create_app(configOverrides=None):
         except Exception as e:
             return jsonify({"error": f"Failed to fetch price for {assetSymbol}: {str(e)}"}), 400
 
+    @app.route("/api/price/batch", methods=["GET"])
+    @login_required
+    def getBatchPrices():
+        assetsQuery = request.args.get("assets", "")
+        if not assetsQuery:
+            return jsonify({})
+
+        pairs = [p.split(":") for p in assetsQuery.split(",") if ":" in p]
+        results = {}
+
+        def _fetchPair(pair):
+            sym, typ = pair[0].strip().upper(), pair[1].strip().lower()
+            try:
+                price = portfolio_service.getLivePrice(sym, typ)
+                return sym, {"price": float(price), "type": typ}
+            except Exception:
+                return sym, {"error": "Failed"}
+
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(len(pairs), 8)) as executor:
+            for sym, data in executor.map(_fetchPair, pairs):
+                results[sym] = data
+
+        return jsonify(results)
+
     @app.route("/api/portfolio", methods=["GET"])
     @login_required
     def getPortfolio():

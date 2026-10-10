@@ -111,13 +111,39 @@ def importHoldingsFromCsv(dbSession, userId, csvFileObj):
     return {"imported": importedCount, "errors": rowErrors}
 
 
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+_SPOT_PRICE_CACHE = {}
+_CACHE_TTL_SECONDS = 20.0
+
+
 def getLivePrice(assetSymbol, assetType, stockPriceFetcher=None, cryptoPriceFetcher=None):
-    if assetType == "crypto":
+    sym = assetSymbol.upper()
+    typ = assetType.lower()
+    isDefaultFetcher = (stockPriceFetcher is None and cryptoPriceFetcher is None)
+
+    # Check TTL cache for default live fetchers
+    if isDefaultFetcher:
+        cacheKey = (sym, typ)
+        now = time.time()
+        if cacheKey in _SPOT_PRICE_CACHE:
+            ts, price = _SPOT_PRICE_CACHE[cacheKey]
+            if now - ts < _CACHE_TTL_SECONDS:
+                return float(price)
+
+    if typ == "crypto":
         fetcher = cryptoPriceFetcher or _defaultCryptoPriceFetcher
     else:
         fetcher = stockPriceFetcher or _defaultStockPriceFetcher
-    rawPrice = fetcher(assetSymbol)
-    return float(rawPrice)  # guards against numpy float64 leaking into JSON responses
+
+    rawPrice = fetcher(sym)
+    val = float(rawPrice)
+
+    if isDefaultFetcher:
+        _SPOT_PRICE_CACHE[(sym, typ)] = (time.time(), val)
+
+    return val
 
 
 def calculatePnl(holding, livePrice):
@@ -134,17 +160,21 @@ def calculatePnl(holding, livePrice):
 
 def getPortfolioPnl(dbSession, userId, stockPriceFetcher=None, cryptoPriceFetcher=None):
     holdings = dbSession.query(Holding).filter_by(userId=userId).all()
-    results = []
-    totalPnl = 0.0
+    if not holdings:
+        return {"holdings": [], "totalPnl": 0.0}
 
-    for holding in holdings:
+    def _fetchOne(holding):
         livePrice = getLivePrice(
             holding.assetSymbol, holding.assetType, stockPriceFetcher, cryptoPriceFetcher
         )
         pnl = calculatePnl(holding, livePrice)
-        results.append({"holding": holding, "livePrice": livePrice, **pnl})
-        totalPnl += pnl["unrealizedPnl"]
+        return {"holding": holding, "livePrice": livePrice, **pnl}
 
+    # Parallelize holding price lookups for max speed
+    with ThreadPoolExecutor(max_workers=min(len(holdings), 8)) as executor:
+        results = list(executor.map(_fetchOne, holdings))
+
+    totalPnl = sum(r["unrealizedPnl"] for r in results)
     return {"holdings": results, "totalPnl": float(totalPnl)}
 
 
@@ -165,3 +195,4 @@ def _defaultCryptoPriceFetcher(assetSymbol):
     )
     response.raise_for_status()
     return response.json()["price"]
+

@@ -30,22 +30,43 @@ Globals accessed/modified: None.
 
 import pandas as pd
 
+import time
+
 LOOKBACK_DAYS_DEFAULT = 250  # enough history for SMA-20/RSI-14/MACD-26 warmup plus LSTM windows
+_HISTORICAL_PRICE_CACHE = {}
+_HIST_TTL_SECONDS = 60.0
 
 
 def getHistoricalPrices(assetSymbol, assetType, lookbackDays=LOOKBACK_DAYS_DEFAULT,
                          stockHistoryFetcher=None, cryptoHistoryFetcher=None):
-    if assetType == "crypto":
+    sym = assetSymbol.upper()
+    typ = assetType.lower()
+    isDefault = (stockHistoryFetcher is None and cryptoHistoryFetcher is None)
+
+    if isDefault:
+        cacheKey = (sym, typ, lookbackDays)
+        now = time.time()
+        if cacheKey in _HISTORICAL_PRICE_CACHE:
+            ts, cachedDf = _HISTORICAL_PRICE_CACHE[cacheKey]
+            if now - ts < _HIST_TTL_SECONDS:
+                return cachedDf.copy()
+
+    if typ == "crypto":
         fetcher = cryptoHistoryFetcher or _defaultCryptoHistoryFetcher
     else:
         fetcher = stockHistoryFetcher or _defaultStockHistoryFetcher
-    priceDf = fetcher(assetSymbol, lookbackDays)
+
+    priceDf = fetcher(sym, lookbackDays)
     # Guard against fetchers returning extra columns (e.g. yfinance's Open/High/Low/
     # Adj Close/Dividends/Splits) — downstream code only expects close + volume.
     priceDf = priceDf[["close", "volume"]].sort_index()
     if priceDf.index.tz is not None:
         priceDf.index = priceDf.index.tz_localize(None)
     priceDf = priceDf[~priceDf.index.duplicated(keep="last")]
+
+    if isDefault:
+        _HISTORICAL_PRICE_CACHE[(sym, typ, lookbackDays)] = (time.time(), priceDf)
+
     return priceDf
 
 
