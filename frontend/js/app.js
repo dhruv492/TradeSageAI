@@ -224,6 +224,30 @@ const Auth = {
     }
   },
 
+  async checkDemoConfig() {
+    const { ok, data } = await Api.fetch("/api/config");
+    if (ok && data && data.demoEnabled) {
+      const container = document.getElementById("gatewayDemoContainer");
+      if (container) container.style.display = "block";
+    }
+  },
+
+  async demoLogin() {
+    const btn = document.getElementById("btnGatewayDemo");
+    if (btn) btn.disabled = true;
+    const { ok, data } = await Api.fetch("/api/demo-login", { method: "POST" });
+    if (!ok) {
+      Toast.show(data.error || "Demo login failed.", "error");
+      if (btn) btn.disabled = false;
+      return;
+    }
+    if (data && (data.email || data.userId)) {
+      localStorage.setItem("tradesage_user", JSON.stringify(data));
+    }
+    Toast.show("Demo login successful! Loading terminal...", "success");
+    setTimeout(() => { window.location.reload(); }, 400);
+  },
+
   openModal() {
     this.setMode("login");
     openModal("modal-auth");

@@ -248,6 +248,23 @@ def create_app(configOverrides=None):
         auth_service.logoutUser()
         return jsonify({"status": "logged out"})
 
+    @app.route("/api/config", methods=["GET"])
+    def getConfig():
+        isSeedOn = os.environ.get("SEED_DEMO_USER") == "1"
+        demoUser = db.session.query(User).filter_by(email="trader@tradesage.ai").first()
+        demoEnabled = bool(isSeedOn and demoUser is not None)
+        return jsonify({"demoEnabled": demoEnabled})
+
+    @app.route("/api/demo-login", methods=["POST"])
+    def demoLogin():
+        if os.environ.get("SEED_DEMO_USER") != "1":
+            return jsonify({"error": "Demo mode disabled"}), 404
+        demoUser = db.session.query(User).filter_by(email="trader@tradesage.ai").first()
+        if not demoUser:
+            return jsonify({"error": "Demo user not seeded"}), 404
+        auth_service.loginUser(demoUser)
+        return jsonify({"userId": demoUser.userId, "email": demoUser.email})
+
     @app.route("/api/me", methods=["GET"])
     @login_required
     def me():

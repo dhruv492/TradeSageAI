@@ -150,8 +150,69 @@ def test_auth_bypass_fix():
         # The signal returned should be user A's, not user B's
         print("PASS: User A cannot read user B's signals (verified via isolation)")
 
-        print("\nALL AUTH SMOKE TESTS PASSED")
+
+def test_demo_login():
+    import os
+    # ── 1. Unset SEED_DEMO_USER ──
+    os.environ.pop("SEED_DEMO_USER", None)
+    app = create_app({"SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:", "TESTING": True})
+    with app.app_context():
+        db.create_all()
+        client = app.test_client()
+
+        resp = client.get("/api/config")
+        assert resp.status_code == 200
+        assert resp.get_json()["demoEnabled"] is False
+        print("PASS: /api/config returns demoEnabled=False when SEED_DEMO_USER is unset")
+
+        resp = client.post("/api/demo-login")
+        assert resp.status_code == 404
+        print("PASS: /api/demo-login returns 404 when SEED_DEMO_USER is unset")
+
+    # ── 2. Set SEED_DEMO_USER = 1 ──
+    os.environ["SEED_DEMO_USER"] = "1"
+    app2 = create_app({"SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:", "TESTING": True})
+    with app2.app_context():
+        db.create_all()
+        from werkzeug.security import generate_password_hash
+        db.session.add(User(email="trader@tradesage.ai", passwordHash=generate_password_hash("Password123!")))
+        db.session.commit()
+
+        client2 = app2.test_client()
+
+        resp = client2.get("/api/config")
+        assert resp.status_code == 200
+        assert resp.get_json()["demoEnabled"] is True
+        print("PASS: /api/config returns demoEnabled=True when SEED_DEMO_USER=1")
+
+        resp = client2.post("/api/demo-login")
+        assert resp.status_code == 200
+        assert resp.get_json()["email"] == "trader@tradesage.ai"
+        print("PASS: /api/demo-login returns 200 when SEED_DEMO_USER=1")
+
+        resp = client2.get("/api/me")
+        assert resp.status_code == 200
+        assert resp.get_json()["email"] == "trader@tradesage.ai"
+        print("PASS: /api/demo-login creates valid authenticated session")
+
+    os.environ.pop("SEED_DEMO_USER", None)
+
+    # ── 3. Verify demo password string appears in no file under frontend/ ──
+    frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
+    demo_pw = "Password123!"
+    found_in = []
+    for root, _, files in os.walk(frontend_dir):
+        for f in files:
+            filepath = os.path.join(root, f)
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as fh:
+                if demo_pw in fh.read():
+                    found_in.append(filepath)
+    assert len(found_in) == 0, f"Demo password found in frontend files: {found_in}"
+    print("PASS: Demo password string appears in no file under frontend/")
+
+    print("\nALL AUTH & DEMO SMOKE TESTS PASSED")
 
 
 if __name__ == "__main__":
     test_auth_bypass_fix()
+    test_demo_login()

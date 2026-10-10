@@ -165,6 +165,14 @@
           Don't have an account? <a href="javascript:void(0)" onclick="setMode('register')" class="auth-link">Sign up</a>
         </div>
 
+        <!-- 1-Click Demo Login Container (Rendered dynamically if demoEnabled) -->
+        <div id="demoLoginContainer" style="display: none; margin-top: 14px; text-align: center;">
+          <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Or use 1-click evaluation access</div>
+          <button type="button" id="btnDemoLogin" class="btn-submit" style="background: var(--bg-card); border: 1px solid var(--border-active); color: var(--text-main);" onclick="handleDemoLogin()">
+            ⚡ 1-Click Demo Login
+          </button>
+        </div>
+
         <!-- Footer Note -->
         <div class="auth-footer">
           <span>Decision-support tool, not financial advice.</span>
@@ -420,8 +428,54 @@
       }
     }
 
+    async function checkDemoConfig() {
+      try {
+        const res = await fetch(`${API_BASE}/api/config`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.demoEnabled) {
+            const container = document.getElementById("demoLoginContainer");
+            if (container) container.style.display = "block";
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function handleDemoLogin() {
+      clearAlert();
+      const btn = document.getElementById("btnDemoLogin");
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/demo-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include"
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (data && (data.email || data.userId)) {
+            localStorage.setItem("tradesage_user", JSON.stringify(data));
+          }
+          showAlert("Demo authentication successful! Loading trading terminal...", "success");
+          const target = window.location.pathname.includes("/static/") ? "dashboard.html" : "/dashboard";
+          setTimeout(() => {
+            window.location.href = target;
+          }, 400);
+        } else {
+          showAlert(data.error || "Demo login failed.");
+          if (btn) btn.disabled = false;
+        }
+      } catch (err) {
+        showAlert(`Network error: ${err.message}`);
+        if (btn) btn.disabled = false;
+      }
+    }
+
     // Initialize on load
-    window.addEventListener("DOMContentLoaded", initMode);
+    window.addEventListener("DOMContentLoaded", () => {
+      initMode();
+      checkDemoConfig();
+    });
     window.addEventListener("popstate", initMode);
   </script>
 </body>
