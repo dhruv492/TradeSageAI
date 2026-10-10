@@ -171,16 +171,10 @@ def create_app(configOverrides=None):
                 db.session.add(User(email="trader@tradesage.ai", passwordHash=generate_password_hash("Password123!")))
                 db.session.commit()
 
-    # Fix #2 — Token scheme documentation (known gap, not a silent assumption):
-    # /api/login and /api/register return a simple "ts_<userId>_<timestamp>"
-    # token that is NOT cryptographically signed. It is accepted by
-    # request_loader purely by parsing the userId digit — any caller who knows
-    # another user's userId can forge their token. This is acceptable for a
-    # solo academic project where the threat model is "demo, not deployment",
-    # but must be replaced with a signed JWT or similar before any real
-    # multi-user deployment. Flask-Login session cookies (set by loginUser()
-    # below) are the primary auth mechanism; the token is a secondary path
-    # used by the JS client when cross-origin cookies are blocked.
+    # Session authentication architecture:
+    # Flask-Login session cookies (set by loginUser()) are the sole authentication
+    # mechanism. The application is same-origin, using signed, HttpOnly session cookies.
+    # No custom or unsigned header tokens are used.
     loginManager = LoginManager()
     loginManager.init_app(app)
 
@@ -229,8 +223,7 @@ def create_app(configOverrides=None):
             newUser = auth_service.registerUser(db.session, body["email"], body["password"])
         except ValueError as registrationError:
             return jsonify({"error": str(registrationError)}), 409
-        token = f"ts_{newUser.userId}_{int(datetime.utcnow().timestamp())}"
-        return jsonify({"userId": newUser.userId, "email": newUser.email, "token": token}), 201
+        return jsonify({"userId": newUser.userId, "email": newUser.email}), 201
 
     @app.route("/api/login", methods=["POST"])
     def login():
@@ -239,8 +232,7 @@ def create_app(configOverrides=None):
         if user is None:
             return jsonify({"error": "invalid credentials"}), 401
         auth_service.loginUser(user)
-        token = f"ts_{user.userId}_{int(datetime.utcnow().timestamp())}"
-        return jsonify({"userId": user.userId, "email": user.email, "token": token})
+        return jsonify({"userId": user.userId, "email": user.email})
 
     @app.route("/api/logout", methods=["POST"])
     @login_required

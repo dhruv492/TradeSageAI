@@ -374,7 +374,6 @@
             const loginData = await loginRes.json().catch(() => ({}));
             if (loginData && (loginData.email || loginData.userId)) {
               localStorage.setItem("tradesage_user", JSON.stringify(loginData));
-              localStorage.setItem("tradesage_token", loginData.token || String(loginData.userId || 1));
             }
             showAlert("Account created successfully! Loading trading terminal...", "success");
             const target = window.location.pathname.includes("/static/") ? "dashboard.html" : "/dashboard";
@@ -403,7 +402,6 @@
 
           if (loginData && (loginData.email || loginData.userId)) {
             localStorage.setItem("tradesage_user", JSON.stringify(loginData));
-            localStorage.setItem("tradesage_token", loginData.token || String(loginData.userId || 1));
           }
 
           showAlert("Authentication successful! Loading trading terminal...", "success");

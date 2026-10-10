@@ -89,10 +89,8 @@ const Toast = {
 const Api = {
   async fetch(path, options = {}) {
     try {
-      const token = localStorage.getItem("tradesage_token");
       const headers = {
         "Content-Type": "application/json",
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...(options.headers || {})
       };
 
@@ -107,7 +105,6 @@ const Api = {
       }
       if (res.status === 401 && path !== "/api/login" && path !== "/api/register" && path !== "/api/portfolio" && path !== "/api/me") {
         localStorage.removeItem("tradesage_user");
-        localStorage.removeItem("tradesage_token");
         Toast.show("Session expired. Redirecting to login...", "info");
         const target = window.location.pathname.includes("/static/") ? "auth.html?mode=login" : "/auth?mode=login";
         setTimeout(() => { window.location.href = target; }, 800);
@@ -216,11 +213,9 @@ const Auth = {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
-      // Fix #5: pass real token + userId from login response
-      if (loginRes.ok) this.handleLoginSuccess(loginRes.data.email, loginRes.data.token, loginRes.data.userId);
+      if (loginRes.ok) this.handleLoginSuccess(loginRes.data.email, loginRes.data.userId);
     } else {
-      // Fix #5: pass real token + userId from register response
-      this.handleLoginSuccess(data.email, data.token, data.userId);
+      this.handleLoginSuccess(data.email, data.userId);
     }
   },
 
@@ -302,22 +297,19 @@ const Auth = {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
-      // Fix #5: pass real token + userId from login response
-      if (loginRes.ok) this.handleLoginSuccess(loginRes.data.email, loginRes.data.token, loginRes.data.userId);
+      if (loginRes.ok) this.handleLoginSuccess(loginRes.data.email, loginRes.data.userId);
     } else {
-      // Fix #5: pass real token + userId from login response
-      this.handleLoginSuccess(data.email, data.token, data.userId);
+      this.handleLoginSuccess(data.email, data.userId);
     }
     closeModal("modal-auth");
   },
 
-  handleLoginSuccess(email, token, userId) {
+  handleLoginSuccess(email, userId) {
     State.userEmail = email;
     if (email) {
       // Only store email - do not store userId as auth credential.
       // Session identity is managed by Flask-Login session cookie (same-origin).
       localStorage.setItem("tradesage_user", JSON.stringify({ email, userId: null }));
-      if (token) localStorage.setItem("tradesage_token", token);
     }
     document.getElementById("userPill").innerHTML = `Trader: <strong>${email}</strong>`;
     document.getElementById("btn-openAuth").style.display = "none";
@@ -336,7 +328,6 @@ const Auth = {
   async logout() {
     await Api.fetch("/api/logout", { method: "POST" });
     State.userEmail = null;
-    localStorage.removeItem("tradesage_token");
     // Do not remove tradesage_user entirely so the email pill can still show
     // the last known email; the server will redirect unauthenticated users.
     document.getElementById("userPill").textContent = "Not Logged In";
